@@ -2,7 +2,7 @@
     "name": "nerdv2/slim4-skeleton",
     "description": "Slim 4 Skeleton",
     "require": {
-        "php": "^8.1",
+        "php": "^8.3",
         "lcobucci/clock": "^3.0",
         "lcobucci/jwt": "^5.0",
         "pecee/pixie": "^4.15",
@@ -15,14 +15,19 @@
         "slim/slim": "^4.8",
         "slim/twig-view": "^3.2",
         "symfony/cache": "^5.3",
-        "vlucas/phpdotenv": "^5.1"
+        "vlucas/phpdotenv": "^5.1",
+        "zircote/swagger-php": "^4.8",
+        "monolog/monolog": "^3.6"
     },
     "config": {
         "platform": {
-            "php": "8.1.0"
+            "php": "8.3.10"
         },
         "sort-packages": true,
-        "process-timeout": 0
+        "process-timeout": 0,
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
     },
     "autoload": {
         "psr-4": {
@@ -32,6 +37,10 @@
     "scripts": {
         "serve": [
             "cd public && php -S localhost:8080"
+        ],
+        "generate-openapi-docs": [
+            "./vendor/bin/openapi src/Controller -o public/openapi.yaml",
+            "./vendor/bin/openapi src/Controller --format json -o public/openapi.json"
         ]
     }
 }
