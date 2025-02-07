@@ -17,7 +17,9 @@
         "symfony/cache": "^5.3",
         "vlucas/phpdotenv": "^5.1",
         "zircote/swagger-php": "^4.8",
-        "monolog/monolog": "^3.6"
+        "monolog/monolog": "^3.6",
+        "twig/intl-extra": "^3.5",
+        "aws/aws-sdk-php": "^3.306"
     },
     "config": {
         "platform": {
