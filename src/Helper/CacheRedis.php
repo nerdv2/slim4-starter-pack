@@ -6,6 +6,8 @@ namespace App\Helper;
 
 final class CacheRedis
 {
+    public $client;
+
     public function __construct()
     {
         $REDIS_SERVER_HOST = isset($_SERVER['REDIS_SERVER_HOST']) ? $_SERVER['REDIS_SERVER_HOST']:'';
