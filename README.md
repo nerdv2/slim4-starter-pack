@@ -14,3 +14,8 @@ This project started when I need replacement for CodeIgniter 3 to a more modern 
 ## Starting application
 
 Simply execute ```composer run serve``` to start the development server.
+
+## Generating OpenAPI/Swagger files
+
+- ```composer run generate-openapi-docs```
+- File will be generated in the public folder as openapi.json and openapi.yaml
