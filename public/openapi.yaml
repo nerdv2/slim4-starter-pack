@@ -1,0 +1,22 @@
+openapi: 3.0.0
+info:
+  title: 'Slim4 Starter Pack'
+  description: 'This is backend API for Slim 4 Starter Pack, please use responsibly.'
+  contact:
+    email: admin@example.com
+  version: v1.0.0
+paths:
+  /status:
+    get:
+      tags:
+        - Default
+      summary: 'Default route'
+      description: 'Retrieves application status and active version.'
+      operationId: 2f1d27cd57d1fe6e5ae4db2202c78875
+      responses:
+        '200':
+          description: Success
+tags:
+  -
+    name: Default
+    description: Default
