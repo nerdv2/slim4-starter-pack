@@ -1,0 +1,2 @@
+[2025-02-07T10:17:16.855552+00:00] name.ERROR: Not found. [404,"HttpNotFoundException","/swaggerui"] []
+[2025-02-07T10:19:31.232215+00:00] name.ERROR: Unable to find template "swagger/view.twig" (looked into: C:\Users\gema_\Documents\Work\Personal\slim4-starter-pack\src\App/../View). [500,"LoaderError","/swaggerui"] []

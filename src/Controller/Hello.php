@@ -47,4 +47,10 @@ final class Hello
 
         return JsonResponse::withJson($response, $result, 200);
     }
+
+    public function openSwaggerUI(Request $request, Response $response): Response
+    {
+        $result = array();
+        return TwigResponse::render($request, $response, "swagger/view.twig", $result, 200);
+    }
 }

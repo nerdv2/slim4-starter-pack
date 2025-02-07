@@ -7,7 +7,6 @@ namespace App\Helper;
 use Slim\Views\Twig;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
-use Slim\Routing\RouteContext;
 
 final class TwigResponse
 {
@@ -18,6 +17,12 @@ final class TwigResponse
         $http = 'http' . ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 's' : '') . '://';
         $newurl = str_replace("index.php", "", $_SERVER['SCRIPT_NAME']);
         $data['baseurl']    = "$http" . $_SERVER['SERVER_NAME'] . "" . $newurl;
+
+        if(in_array($_SERVER['REMOTE_ADDR'], array('127.0.0.1', '::1', 'localhost'))){
+            $data['baseurl']    = "$http" . $_SERVER['SERVER_NAME'] . ":" . $_SERVER['SERVER_PORT'] . "" . $newurl;
+        }
+
+        $data['uri'] = $_SERVER['REQUEST_URI'];
 
         return $view->render($response, $template, $data);
     }
