@@ -9,3 +9,8 @@
 /.env
 /.scannerwork/
 /.phpunit.result.cache
+
+storage/cache/*
+!storage/cache/.gitkeep
+storage/log/*
+!storage/log/.gitkeep
