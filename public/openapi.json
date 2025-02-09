@@ -9,6 +9,147 @@
         "version": "v1.0.0"
     },
     "paths": {
+        "/customer": {
+            "get": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "Retrieve data for customer",
+                "description": "Retrieve data for customer.",
+                "operationId": "40b7f7503eba97a0c6399d9ef21c7e12",
+                "parameters": [
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "schema": {
+                            "properties": {
+                                "keywords": {
+                                    "description": "[OPTIONAL] Search keywords",
+                                    "type": "string",
+                                    "default": ""
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            }
+        },
+        "/customer/add": {
+            "post": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "Add new customer data",
+                "description": "Add new customer data.",
+                "operationId": "867eea20c068a227fbe1205518f2e61d",
+                "requestBody": {
+                    "description": "Data",
+                    "required": true,
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "description": "Name",
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            }
+        },
+        "/customer/update": {
+            "post": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "Update customer data",
+                "description": "Update customer data.",
+                "operationId": "9f19530c46fd84f8d843e55f604a23d8",
+                "requestBody": {
+                    "description": "Data",
+                    "required": true,
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "required": [
+                                    "id",
+                                    "name"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "description": "ID",
+                                        "type": "string"
+                                    },
+                                    "name": {
+                                        "description": "Name",
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            }
+        },
+        "/customer/delete": {
+            "delete": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "Delete customer data",
+                "description": "Delete customer data.",
+                "operationId": "f7369b083d75d0520aa3f8ae9becb0ed",
+                "requestBody": {
+                    "description": "Data",
+                    "required": true,
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "description": "ID",
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            }
+        },
         "/status": {
             "get": {
                 "tags": [
@@ -26,6 +167,10 @@
         }
     },
     "tags": [
+        {
+            "name": "Customer",
+            "description": "Customer"
+        },
         {
             "name": "Default",
             "description": "Default"
