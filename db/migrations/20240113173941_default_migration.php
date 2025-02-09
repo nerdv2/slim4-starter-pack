@@ -10,8 +10,8 @@ final class DefaultMigration extends AbstractMigration
     public function change(): void
     {
         // create the table
-        $table = $this->table('user_logins');
-        $table->addColumn('user_id', 'integer')
+        $table = $this->table('customer');
+        $table->addColumn('name', 'string')
               ->addColumn('created', 'datetime')
               ->create();
     }

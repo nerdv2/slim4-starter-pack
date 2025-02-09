@@ -43,6 +43,9 @@
         "generate-openapi-docs": [
             "./vendor/bin/openapi src/Controller -o public/openapi.yaml",
             "./vendor/bin/openapi src/Controller --format json -o public/openapi.json"
+        ],
+        "migrate": [
+            "./vendor/bin/phinx migrate"
         ]
     }
 }
