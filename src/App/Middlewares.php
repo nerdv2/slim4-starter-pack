@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Middleware\RequestIdMiddleware;
 use Slim\App;
 use Slim\Views\Twig;
 use Slim\Views\TwigMiddleware;
@@ -22,6 +23,10 @@ return function (App $app, $customErrorHandler): void {
     );
     $errorMiddleware = $app->addErrorMiddleware($displayError, true, $displayError);
     $errorMiddleware->setDefaultErrorHandler($customErrorHandler);
+
+    // Registered after the error middleware so the request id is available to
+    // the error handler and echoed on error responses as well.
+    $app->add(new RequestIdMiddleware());
 
     // Create Twig — compiled templates are cached in storage; development
     // re-checks template mtimes so edits apply immediately.
