@@ -3,6 +3,7 @@
 !/logs/README.md
 /coverage/
 *.php_cs.cache
+.phpcs.cache
 /nbproject/
 /build/
 /cache/

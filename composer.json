@@ -64,6 +64,20 @@
         ],
         "token": [
             "php bin/generate-token"
+        ],
+        "analyse": [
+            "./vendor/bin/phpstan analyse --no-progress"
+        ],
+        "phpcs": [
+            "./vendor/bin/phpcs"
+        ],
+        "phpcbf": [
+            "./vendor/bin/phpcbf"
+        ],
+        "check": [
+            "@composer validate --no-check-publish",
+            "@analyse",
+            "@phpcs"
         ]
     }
 }
