@@ -109,18 +109,93 @@ Swagger UI is available at `http://127.0.0.1:8080/swaggerui`.
    }
    ```
 
-2. **Add the controller** extending `App\Controller\BaseController`, validate/cast input, and
-   answer through `JsonResponse`:
+2. **Add a service** for the business rules and register the model and service in
+   `src/App/Services.php`:
+
+   ```php
+   final class ExampleService
+   {
+       public function __construct(private readonly ExampleModel $exampleModel) {}
+
+       /** @return array{data: array<int, \stdClass>, total_data: int, total_page: int} */
+       public function list(string $keywords, int $page, int $limit): array
+       {
+           $totalData = $this->exampleModel->countGet($keywords);
+
+           return [
+               'data' => $this->exampleModel->get($keywords, $page, $limit),
+               'total_data' => $totalData,
+               'total_page' => Pagination::totalPages($totalData, $limit),
+           ];
+       }
+
+       public function create(string $name): void
+       {
+           if ($this->exampleModel->existsByName($name)) {
+               throw new ValidationException('Example name already exists.');
+           }
+
+           $this->exampleModel->create($name);
+       }
+   }
+   ```
+
+   ```php
+   $container['exampleModel'] = static function (Container $container): ExampleModel {
+       /** @var Connection $db */
+       $db = $container['db'];
+
+       return new ExampleModel($db);
+   };
+
+   $container['exampleService'] = static function (Container $container): ExampleService {
+       /** @var ExampleModel $model */
+       $model = $container['exampleModel'];
+
+       return new ExampleService($model);
+   };
+   ```
+
+3. **Add a request DTO** under `src/DTO/Request/` for write payloads:
+
+   ```php
+   final readonly class ExampleRequest
+   {
+       public function __construct(public string $name) {}
+
+       public static function fromRequest(ServerRequestInterface $request): self
+       {
+           $body = $request->getParsedBody();
+           $body = is_array($body) ? $body : [];
+
+           return new self(name: trim((string) ($body['name'] ?? '')));
+       }
+
+       /** @return array<string, string> */
+       public function validate(): array
+       {
+           return $this->name === '' ? ['name' => 'Name is required.'] : [];
+       }
+
+       public function isValid(): bool
+       {
+           return $this->validate() === [];
+       }
+   }
+   ```
+
+4. **Add the controller** extending `App\Controller\BaseController`, resolve the service from the
+   container and answer through `JsonResponse`:
 
    ```php
    final class Example extends BaseController
    {
-       private ExampleModel $exampleModel;
+       private ExampleService $exampleService;
 
        public function __construct(Container $container)
        {
            parent::__construct($container);
-           $this->exampleModel = new ExampleModel($this->db());
+           $this->exampleService = $container->get('exampleService');
        }
 
        #[OA\Get(path: '/example', tags: [OpenApiTags::DEFAULT])]
@@ -129,30 +204,46 @@ Swagger UI is available at `http://127.0.0.1:8080/swaggerui`.
        {
            $get = $request->getQueryParams();
            [$page, $limit] = Pagination::sanitize($get['page'] ?? null, $get['limit'] ?? null);
-           $keywords = trim((string) ($get['keywords'] ?? ''));
 
-           $totalData = $this->exampleModel->countGet($keywords);
-           $data = $this->exampleModel->get($keywords, $page, $limit);
+           $result = $this->exampleService->list(trim((string) ($get['keywords'] ?? '')), $page, $limit);
 
-           return JsonResponse::success($response, $data, JsonResponse::DEFAULT_SUCCESS_MESSAGE, [
-               'total_page' => Pagination::totalPages($totalData, $limit),
-               'total_data' => $totalData,
+           return JsonResponse::success($response, $result['data'], JsonResponse::DEFAULT_SUCCESS_MESSAGE, [
+               'total_page' => $result['total_page'],
+               'total_data' => $result['total_data'],
            ]);
+       }
+
+       #[OA\Post(path: '/example/add', tags: [OpenApiTags::DEFAULT])]
+       #[OA\Response(response: 200, description: 'Success')]
+       public function add(Request $request, Response $response): Response
+       {
+           $dto = ExampleRequest::fromRequest($request);
+           if (!$dto->isValid()) {
+               return JsonResponse::error($response, 'Validation failed.', $dto->validate(), [], HttpStatus::BAD_REQUEST);
+           }
+
+           try {
+               $this->exampleService->create($dto->name);
+           } catch (AppException $exception) {
+               return $this->errorResponse($response, $exception);
+           }
+
+           return JsonResponse::success($response, [], 'Example created.');
        }
    }
    ```
 
-3. **Register the route** in `src/App/Routes.php` with a name; add middleware for protected
+5. **Register the route** in `src/App/Routes.php` with a name; add middleware for protected
    endpoints (`AuthorizationMiddleware` first, `AuthenticationMiddleware` last):
 
    ```php
    $app->get('/example', 'App\Controller\Example:get')->setName('api.example.list');
    ```
 
-4. **Annotate** with `#[OA\...]` attributes and regenerate:
+6. **Annotate** with `#[OA\...]` attributes and regenerate:
    `composer run generate-openapi-docs`.
 
-5. **Verify** with `composer run check` and a manual request:
+7. **Verify** with `composer run check`, `composer run test` and a manual request:
 
    ```bash
    curl -s 'http://localhost:8080/example?page=1&limit=10' | jq
@@ -161,8 +252,8 @@ Swagger UI is available at `http://127.0.0.1:8080/swaggerui`.
      -d 'name=Acme' | jq
    ```
 
-Before finishing, run the checklist in `AGENTS.md`: syntax check, `composer check`, envelope
-preserved, routes named and registered, input validated.
+Before finishing, run the checklist in `AGENTS.md`: syntax check, `composer check`,
+`composer test`, envelope preserved, routes named and registered, input validated.
 
 ## Testing
 

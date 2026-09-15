@@ -53,6 +53,33 @@ return JsonResponse::notFound($response);                             // "Data t
 | `notFound()` | `notFound($response, $data = [], $extra = [], $httpStatus = 200)` |
 | `withJson()` | Low-level writer for payloads that are not the standard envelope. |
 
+### Validation and Not-Found Errors
+
+Invalid payloads return `400` with the field messages in `data`:
+
+```json
+{
+    "status": false,
+    "message": "Validation failed.",
+    "data": {
+        "name": "Name is required."
+    }
+}
+```
+
+Resources that do not exist return `404`:
+
+```json
+{
+    "status": false,
+    "message": "Customer not found.",
+    "data": []
+}
+```
+
+Typed exceptions (`ValidationException`, `NotFoundException`) become these responses through
+`BaseController::errorResponse()`; services throw them and controllers catch `AppException`.
+
 Notes:
 
 - `status` is a boolean on the envelope; the uncaught-exception payload (see

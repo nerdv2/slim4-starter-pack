@@ -40,8 +40,9 @@ php -l path/to/file.php               # syntax check
 1. **Do not break the API contract.** Never change existing routes, response keys or the
    `status`/`message`/`data` envelope without an explicit decision. When in doubt, extend instead
    of rename.
-2. **Follow the architecture.** Routes → Controllers → Models → MySQL. Controllers own HTTP,
-   models own SQL, helpers stay stateless. No ORM, no new framework, no new architecture pattern.
+2. **Follow the architecture.** Routes → Controllers → Services → Models → MySQL. Controllers own
+   HTTP, services own business rules, models own SQL, helpers stay stateless. No ORM, no new
+   framework, no new architecture pattern.
 3. **No new Composer dependency without an explicit decision** recorded before the change.
 4. **`declare(strict_types=1);` in every PHP file**; classes are `final` unless designed for
    extension.
@@ -60,6 +61,7 @@ public/index.php
        ├─ Middlewares.php (routing, body parsing, error handling, Twig)
        ├─ Cors.php        (development only; gated by CORS_ENABLED)
        ├─ Database.php    ('db' primary, 'db_read' replica; mysql/mariadb/sqlite)
+       ├─ Services.php    (container registration for models and services)
        ├─ Routes.php      (route definitions)
        └─ NotFound.php    (catch-all 404)
 ```
@@ -69,7 +71,10 @@ Target directory layout:
 | Path | Contents |
 |------|----------|
 | `src/App/` | Bootstrap, container, routes, middleware configuration. |
-| `src/Controller/` | Request handlers; extend `BaseController` once P4 lands. |
+| `src/Controller/` | Request handlers; extend `BaseController`. |
+| `src/Service/` | Business rules; the only layer that coordinates models and throws typed exceptions. |
+| `src/DTO/` | Request payloads with `fromRequest`, `validate` and `isValid`. |
+| `src/Exceptions/` | Typed application exceptions (`AppException`, `ValidationException`, `NotFoundException`). |
 | `src/Middleware/` | PSR-15 middleware (authentication, authorization) once P4 lands. |
 | `src/Model/` | Data access; extend `BaseModel` once P2 lands. |
 | `src/Helper/` | Stateless utilities (`JsonResponse`, `Pagination`, `JwtHelper`, ...). |
@@ -95,14 +100,29 @@ public function list(Request $request, Response $response): Response
     $get = $request->getQueryParams();
     [$page, $limit] = Pagination::sanitize($get['page'] ?? null, $get['limit'] ?? null);
 
-    $data = $this->model->list($get['keywords'] ?? '', $page, $limit);
+    $result = $this->exampleService->list($get['keywords'] ?? '', $page, $limit);
 
-    return JsonResponse::success($response, $data, 'Data ditemukan', [
-        'total_page' => Pagination::totalPages($total, $limit),
-        'total_data' => $total,
+    return JsonResponse::success($response, $result['data'], 'Data ditemukan', [
+        'total_page' => $result['total_page'],
+        'total_data' => $result['total_data'],
     ]);
 }
 ```
+
+### DTOs
+
+- Request payloads are `final readonly` classes under `src/DTO/Request/` with a static
+  `fromRequest(ServerRequestInterface)` factory, `validate(): array` (field-keyed messages) and
+  `isValid(): bool`.
+- Controllers validate the DTO before calling a service; invalid payloads return
+  `JsonResponse::error($response, 'Validation failed.', $dto->validate(), [], HttpStatus::BAD_REQUEST)`.
+
+### Services
+
+- Business rules live in `src/Service/` classes registered in `src/App/Services.php`; controllers
+  resolve them from the container (for example `$container->get('customerService')`).
+- Services throw typed exceptions (`ValidationException`, `NotFoundException`); controllers catch
+  `AppException` and return the envelope through `BaseController::errorResponse()`.
 
 ### Models
 
@@ -207,6 +227,7 @@ docs(agents): add contributor and agent guidelines
 
 - [ ] `composer run check` passes (composer validate + PHPStan + PHPCS).
 - [ ] `composer run test` passes; tests run on SQLite, never against a real database.
+- [ ] New services and models are registered in `src/App/Services.php`.
 - [ ] `php -l` passes for every changed PHP file.
 - [ ] No new dependencies, no new frameworks, no hand-assembled response envelopes.
 - [ ] Routes are registered in `src/App/Routes.php` and named.

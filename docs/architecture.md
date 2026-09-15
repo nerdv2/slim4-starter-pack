@@ -35,10 +35,13 @@ src/
 │   └── Routes.php       Route definitions
 ├── Constants/           HttpStatus, DateFormat, OpenApiTags
 ├── Controller/          HTTP handlers (BaseController, Hello, Customer, OpenApi)
+├── DTO/                 Request payloads (fromRequest/validate/isValid)
+├── Exceptions/          Typed application exceptions
 ├── Helper/              Stateless utilities (JsonResponse, Pagination, JwtHelper, ...)
 ├── Interfaces/          ModelInterface
 ├── Middleware/          AuthenticationMiddleware, AuthorizationMiddleware
 ├── Model/               Data access (BaseModel, CustomerModel, HelloModel)
+├── Service/             Business rules (CustomerService)
 └── View/                Twig templates (Swagger UI)
 bin/generate-token       Development token generator
 db/migrations/           Phinx migrations
@@ -62,8 +65,10 @@ storage/log/             Application error log
 6. `Cors.php` — registered when `CORS_ENABLED` is true (default: development/testing or
    `localhost`).
 7. `Database.php` — registers the `db` and `db_read` SimpleQuery connections.
-8. `Routes.php` — registers every route.
-9. `NotFound.php` — catch-all route that throws `HttpNotFoundException`.
+8. `Services.php` — registers models and services (for example `customerModel`,
+   `customerService`) in the container.
+9. `Routes.php` — registers every route.
+10. `NotFound.php` — catch-all route that throws `HttpNotFoundException`.
 
 Finally `public/index.php` calls `$app->run()`.
 
@@ -144,6 +149,64 @@ final class Example extends BaseController
 
 Controllers own HTTP concerns: parsing and validating input, choosing the response, calling models.
 They are annotated with `#[OA\...]` attributes for the generated specification.
+
+### DTOs
+
+Request payloads live in `src/DTO/Request/`. Each DTO is a `final readonly` class with a static
+`fromRequest()` factory, field-keyed `validate()` errors and an `isValid()` check:
+
+```php
+final readonly class CustomerRequest
+{
+    public function __construct(public string $name) {}
+
+    public static function fromRequest(ServerRequestInterface $request): self
+    {
+        $body = $request->getParsedBody();
+        $body = is_array($body) ? $body : [];
+
+        return new self(name: trim((string) ($body['name'] ?? '')));
+    }
+
+    /** @return array<string, string> */
+    public function validate(): array
+    {
+        return $this->name === '' ? ['name' => 'Name is required.'] : [];
+    }
+
+    public function isValid(): bool
+    {
+        return $this->validate() === [];
+    }
+}
+```
+
+### Services
+
+Business rules live in `src/Service/` and are registered in `src/App/Services.php`. Services
+coordinate models, apply rules and throw typed exceptions:
+
+```php
+final class CustomerService
+{
+    public function __construct(private readonly CustomerModel $customerModel) {}
+
+    public function create(string $name): void
+    {
+        if ($this->customerModel->existsByName($name)) {
+            throw new ValidationException('Customer name already exists.', [
+                'name' => 'Customer name already exists.',
+            ]);
+        }
+
+        $this->customerModel->create($name);
+    }
+}
+```
+
+Controllers catch `AppException` and turn it into the standard envelope through
+`BaseController::errorResponse()`; an uncaught typed exception still maps to its HTTP status in the
+global error handler.
 
 ### Models
 
