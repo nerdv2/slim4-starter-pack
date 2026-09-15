@@ -3,23 +3,28 @@
     "description": "Slim 4 Skeleton",
     "require": {
         "php": "^8.3",
+        "ext-curl": "*",
+        "ext-fileinfo": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-openssl": "*",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "aws/aws-sdk-php": "^3.306",
         "lcobucci/clock": "^3.0",
         "lcobucci/jwt": "^5.0",
+        "monolog/monolog": "^3.6",
         "pecee/pixie": "^4.15",
         "pimple/pimple": "^3.2",
         "predis/predis": "^1.1",
         "robmorgan/phinx": "^0.15.5",
         "selective/basepath": "^2.1",
-        "slim/http-cache": "^1.1",
         "slim/psr7": "^1.0.0",
         "slim/slim": "^4.8",
         "slim/twig-view": "^3.2",
-        "symfony/cache": "^5.3",
-        "vlucas/phpdotenv": "^5.1",
-        "zircote/swagger-php": "^4.8",
-        "monolog/monolog": "^3.6",
         "twig/intl-extra": "^3.5",
-        "aws/aws-sdk-php": "^3.306"
+        "vlucas/phpdotenv": "^5.1",
+        "zircote/swagger-php": "^4.8"
     },
     "config": {
         "platform": {
@@ -38,7 +43,7 @@
     },
     "scripts": {
         "serve": [
-            "cd public && php -S localhost:8080"
+            "php -S localhost:8080 -t public"
         ],
         "generate-openapi-docs": [
             "./vendor/bin/openapi src/Controller -o public/openapi.yaml",
@@ -46,6 +51,12 @@
         ],
         "migrate": [
             "./vendor/bin/phinx migrate"
+        ],
+        "migrate:rollback": [
+            "./vendor/bin/phinx rollback"
+        ],
+        "seed": [
+            "./vendor/bin/phinx seed:run"
         ]
     }
 }
