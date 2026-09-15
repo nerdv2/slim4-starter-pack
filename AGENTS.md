@@ -51,7 +51,7 @@ Quality commands (`composer analyse`, `composer phpcs`, `composer check`) are ad
 ```text
 public/index.php
   └─ src/App/App.php
-       ├─ DotEnv.php      (.env → $_SERVER / $_ENV)
+       ├─ DotEnv.php      (.env → $_SERVER / $_ENV; parse cached in storage/cache)
        ├─ Container.php   (Pimple PSR-11 + Slim AppFactory)
        ├─ ErrorHandler.php (JSON errors for uncaught exceptions)
        ├─ Middlewares.php (routing, body parsing, error handling, Twig)
@@ -184,6 +184,7 @@ docs(agents): add contributor and agent guidelines
 |-------|-------|-------|
 | P0 | Conventions locked in this file | done |
 | P1 | Configuration & environment | done |
+| P1b | Caching: env parse + Twig templates | done |
 | P2 | SimpleQuery + `BaseModel` + `Pagination` | pending |
 | P3 | Response envelope, error handling, CORS | pending |
 | P4 | `JwtHelper`, auth middleware, `BaseController` | pending |
