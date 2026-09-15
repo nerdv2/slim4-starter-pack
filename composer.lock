@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bc893238cdc82439155b7eddfe248e01",
+    "content-hash": "d27605f6be11c469fec357ec9cd0b9ba",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -1457,6 +1457,78 @@
                 "source": "https://github.com/oeltimacreation/php-simplequery"
             },
             "time": "2026-08-24T05:36:20+00:00"
+        },
+        {
+            "name": "oeltimacreation/php-simplequeue",
+            "version": "1.11.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/oeltimacreation/php-simplequeue.git",
+                "reference": "834a1149af42debf9a5525d491ccff3e7f26ae8c"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/oeltimacreation/php-simplequeue/zipball/834a1149af42debf9a5525d491ccff3e7f26ae8c",
+                "reference": "834a1149af42debf9a5525d491ccff3e7f26ae8c",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.2",
+                "psr/container": "^1.1|^2.0",
+                "psr/log": "^2.0|^3.0"
+            },
+            "require-dev": {
+                "dealerdirect/phpcodesniffer-composer-installer": "^1.2",
+                "infection/infection": "^0.31.9",
+                "phpstan/extension-installer": "^1.4",
+                "phpstan/phpstan": "^2.2.2",
+                "phpstan/phpstan-deprecation-rules": "^2.0",
+                "phpstan/phpstan-phpunit": "^2.0",
+                "phpstan/phpstan-strict-rules": "^2.0",
+                "phpunit/phpunit": "^11.0",
+                "predis/predis": "^3.0",
+                "psr/http-message": "^2.0",
+                "slevomat/coding-standard": "^8.29",
+                "squizlabs/php_codesniffer": "^4.0"
+            },
+            "suggest": {
+                "ext-pcntl": "Required for graceful worker shutdown on Unix systems",
+                "ext-pdo": "Required for database queue driver",
+                "predis/predis": "Required for Redis queue driver (^3.0)"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Oeltima\\SimpleQueue\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Gema Aji Wardian",
+                    "email": "gema@oeltimacreation.com"
+                }
+            ],
+            "description": "A lightweight, framework-agnostic background job queue system for PHP with Redis and database drivers",
+            "homepage": "https://github.com/oeltimacreation/php-simplequeue",
+            "keywords": [
+                "async",
+                "background",
+                "job",
+                "queue",
+                "redis",
+                "scheduler",
+                "task",
+                "worker"
+            ],
+            "support": {
+                "issues": "https://github.com/oeltimacreation/php-simplequeue/issues",
+                "source": "https://github.com/oeltimacreation/php-simplequeue"
+            },
+            "time": "2026-09-05T02:27:54+00:00"
         },
         {
             "name": "phpstan/phpdoc-parser",
