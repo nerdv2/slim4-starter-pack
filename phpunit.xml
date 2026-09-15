@@ -36,6 +36,7 @@
         <env name="JWT_TTL" value="+7 day" force="true"/>
         <env name="DB_DRIVER" value="sqlite" force="true"/>
         <env name="DB_NAME" value="storage/test_database.sqlite" force="true"/>
+        <env name="QUEUE_DRIVER" value="database" force="true"/>
         <env name="DISPLAY_ERROR_DETAILS" value="true" force="true"/>
     </php>
 </phpunit>

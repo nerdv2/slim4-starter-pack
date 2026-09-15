@@ -10,6 +10,13 @@ jobs:
     name: Quality gates and tests
     runs-on: ubuntu-latest
 
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -36,6 +43,9 @@ jobs:
         run: composer run check
 
       - name: Run tests
+        env:
+          REDIS_SERVER_HOST: 127.0.0.1
+          REDIS_SERVER_PORT: 6379
         run: composer run test
 
   docker:
