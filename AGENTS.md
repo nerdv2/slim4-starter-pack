@@ -5,8 +5,8 @@ Rules for working on the **Slim 4 Starter Pack** (`nerdv2/slim4-skeleton`).
 > **Status:** this file describes the target conventions for this repository. The codebase is being
 > migrated to them in phases P1–P6 (configuration, data layer, HTTP contract, authentication,
 > example module, tooling). Follow these rules for new and touched code. Files that have not been
-> migrated yet (Pixie models, `AuthToken`, hand-assembled responses) are tracked internally and
-> will be rewritten phase by phase.
+> migrated yet (`AuthToken`, hand-assembled responses) are tracked internally and will be
+> rewritten phase by phase.
 
 ---
 
@@ -56,7 +56,7 @@ public/index.php
        ├─ ErrorHandler.php (JSON errors for uncaught exceptions)
        ├─ Middlewares.php (routing, body parsing, error handling, Twig)
        ├─ Cors.php        (development only; gated by CORS_ENABLED)
-       ├─ Database.php    ('db' primary, 'db_read' replica)
+       ├─ Database.php    ('db' primary, 'db_read' replica; mysql/mariadb/sqlite)
        ├─ Routes.php      (route definitions)
        └─ NotFound.php    (catch-all 404)
 ```
@@ -100,10 +100,10 @@ public function list(Request $request, Response $response): Response
 
 ### Models
 
-- Extend `App\Model\BaseModel` (added in P2) and obtain a fresh builder per method with
+- Extend `App\Model\BaseModel` and obtain a fresh builder per method with
   `$this->db()->table(...)`. Never cache a builder on the model.
-- The query builder is `oeltimacreation/php-simplequery` (target; Pixie is still in place until
-  P2). Do not instantiate another model inside a model.
+- The query builder is `oeltimacreation/php-simplequery`; do not add an ORM or instantiate
+  another model inside a model.
 - Soft-deleted rows are filtered with `whereNull('deleted_at')` where the table supports it.
 - Timestamps are set explicitly (`date(DateFormat::DATETIME)`); there is no ORM magic.
 - Select only the columns you use; use a `COUNT(*)` companion for paginated lists.
@@ -185,7 +185,7 @@ docs(agents): add contributor and agent guidelines
 | P0 | Conventions locked in this file | done |
 | P1 | Configuration & environment | done |
 | P1b | Caching: env parse + Twig templates | done |
-| P2 | SimpleQuery + `BaseModel` + `Pagination` | pending |
+| P2 | SimpleQuery + `BaseModel` + `Pagination` | done |
 | P3 | Response envelope, error handling, CORS | pending |
 | P4 | `JwtHelper`, auth middleware, `BaseController` | pending |
 | P5 | Example module + OpenAPI (swagger-php 6) | pending |
