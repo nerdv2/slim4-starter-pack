@@ -2,11 +2,9 @@
 
 Rules for working on the **Slim 4 Starter Pack** (`nerdv2/slim4-skeleton`).
 
-> **Status:** this file describes the target conventions for this repository. The codebase is being
-> migrated to them in phases P1–P6 (configuration, data layer, HTTP contract, authentication,
-> example module, tooling). Follow these rules for new and touched code. Files that have not been
-> migrated yet (hand-assembled responses) are tracked internally and will be rewritten phase by
-> phase.
+> **Status:** the codebase has been migrated to these conventions through phase P5 (configuration,
+> data layer, HTTP contract, authentication, example module). Phase P6 adds the quality gates and
+> developer docs. Follow these rules for new and touched code.
 
 ---
 
@@ -83,6 +81,8 @@ Target directory layout:
 - Validate and cast request input (`getQueryParams()`, `getParsedBody()`) before passing it to a
   model. Never let raw request values reach SQL.
 - Always answer through `App\Helper\JsonResponse`; never assemble the envelope by hand.
+- Annotate endpoints with `#[OA\...]` attributes using `App\Constants\OpenApiTags` and regenerate
+  the specification with `composer run generate-openapi-docs`.
 
 ```php
 public function list(Request $request, Response $response): Response
@@ -195,7 +195,7 @@ docs(agents): add contributor and agent guidelines
 | P2 | SimpleQuery + `BaseModel` + `Pagination` | done |
 | P3 | Response envelope, error handling, CORS | done |
 | P4 | `JwtHelper`, auth middleware, `BaseController` | done |
-| P5 | Example module + OpenAPI (swagger-php 6) | pending |
+| P5 | Example module + OpenAPI (swagger-php 6) | done |
 | P6 | PHPStan/PHPCS, developer docs | pending |
 
 ## 8. Before You Finish
