@@ -6,17 +6,26 @@ namespace App\Model;
 
 final class CustomerModel extends BaseModel
 {
-    public function get($keywords = ''): array
+    public function get(string $keywords = '', ?int $page = null, ?int $limit = null): array
     {
         $query = $this->db()->table('customer')
             ->select('customer.id', 'customer.name');
 
-        $this->applyKeywordSearch($query, 'customer.name', (string) $keywords);
+        $this->applyKeywordSearch($query, 'customer.name', $keywords);
+        $this->applyPagination($query, $page, $limit);
 
-        return $query->get();
+        return $query->orderBy('customer.id', 'asc')->get();
     }
 
-    public function add($name): bool
+    public function count_get(string $keywords = ''): int
+    {
+        $query = $this->db()->table('customer');
+        $this->applyKeywordSearch($query, 'customer.name', $keywords);
+
+        return $query->count();
+    }
+
+    public function add(string $name): bool
     {
         $exists = $this->db()->table('customer')
             ->where('customer.name', '=', $name)
@@ -32,7 +41,7 @@ final class CustomerModel extends BaseModel
         ]) > 0;
     }
 
-    public function update($id, $name): bool
+    public function update(int|string $id, string $name): bool
     {
         $conflict = $this->db()->table('customer')
             ->where('customer.name', '=', $name)
@@ -48,7 +57,7 @@ final class CustomerModel extends BaseModel
         return true;
     }
 
-    public function delete($id): bool
+    public function delete(int|string $id): bool
     {
         $this->db()->table('customer')
             ->where('customer.id', '=', $id)

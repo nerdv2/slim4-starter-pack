@@ -4,53 +4,63 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Constants\OpenApiTags;
 use App\Helper\JsonResponse;
 use App\Helper\TwigResponse;
-use Pimple\Psr11\Container;
 use App\Model\HelloModel;
-
+use OpenApi\Attributes as OA;
+use Pimple\Psr11\Container;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use OpenApi\Attributes as OA;
 
-#[OA\Info(
-    title: "Slim4 Starter Pack", 
-    version: "v1.0.0", 
-    description: "This is backend API for Slim 4 Starter Pack, please use responsibly.",
-    contact: new OA\Contact(email: "admin@example.com")
-)]
-final class Hello
+final class Hello extends BaseController
 {
-    private Container $container;
-    private $hellomodel;
+    private HelloModel $helloModel;
 
     public function __construct(Container $container)
     {
-        $this->container = $container;
+        parent::__construct($container);
+        $this->helloModel = new HelloModel();
     }
 
+    #[OA\Get(
+        path: '/',
+        tags: [OpenApiTags::DEFAULT],
+        description: 'Application name and active version.',
+        summary: 'Application status'
+    )]
+    #[OA\Response(response: 200, description: 'Success')]
     public function getStatus(Request $request, Response $response): Response
     {
-        $data['message'] = "Hello world!";
-
-        return TwigResponse::render($request, $response, "hello.twig", $data, 200);
+        return JsonResponse::success($response, [
+            'name' => (string) ($_SERVER['APP_NAME'] ?? 'Slim 4 Starter Pack'),
+            'version' => (string) ($_SERVER['APP_VERSION'] ?? 'dev'),
+        ], 'Application is running');
     }
 
-    #[OA\Get(path: '/status', tags: ["Default"], description: 'Retrieves application status and active version.', summary: "Default route")]
-    #[OA\Response(response: '200', description: "Success")]
+    #[OA\Get(
+        path: '/status',
+        tags: [OpenApiTags::DEFAULT],
+        description: 'Retrieves application status and active version.',
+        summary: 'Application status payload'
+    )]
+    #[OA\Response(response: 200, description: 'Success')]
     public function getStatusAPI(Request $request, Response $response): Response
     {
-        $this->hellomodel = new HelloModel();
-
-        $result['status'] = true;
-        $result['message'] = $this->hellomodel->getHello();
-
-        return JsonResponse::withJson($response, $result, 200);
+        return JsonResponse::success($response, [
+            'message' => $this->helloModel->getHello(),
+        ]);
     }
 
+    #[OA\Get(
+        path: '/swaggerui',
+        tags: [OpenApiTags::DEFAULT],
+        description: 'Bundled Swagger UI for the generated OpenAPI specification.',
+        summary: 'API documentation UI'
+    )]
+    #[OA\Response(response: 200, description: 'HTML page')]
     public function openSwaggerUI(Request $request, Response $response): Response
     {
-        $result = array();
-        return TwigResponse::render($request, $response, "swagger/view.twig", $result, 200);
+        return TwigResponse::render($request, $response, 'swagger/view.twig', []);
     }
 }

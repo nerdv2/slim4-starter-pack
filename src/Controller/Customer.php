@@ -4,168 +4,199 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Constants\HttpStatus;
+use App\Constants\OpenApiTags;
 use App\Helper\JsonResponse;
-use Pimple\Psr11\Container;
-
+use App\Helper\Pagination;
 use App\Model\CustomerModel;
-
+use OpenApi\Attributes as OA;
+use Pimple\Psr11\Container;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use OpenApi\Attributes as OA;
 
-final class Customer
+final class Customer extends BaseController
 {
-    private $container;
-    private $customerModel;
+    private CustomerModel $customerModel;
 
     public function __construct(Container $container)
     {
-        $this->container = $container;
-        $this->customerModel            = new CustomerModel($this->container->get('db'));
+        parent::__construct($container);
+        $this->customerModel = new CustomerModel($this->db());
     }
 
     #[OA\Get(
-        path: '/customer', 
-        tags: ["Customer"], 
-        description: 'Retrieve data for customer.', 
-        summary: "Retrieve data for customer",
+        path: '/customer',
+        tags: [OpenApiTags::CUSTOMER],
+        description: 'Retrieve a paginated customer list with optional keyword search.',
+        summary: 'List customers',
         parameters: [
             new OA\Parameter(
-                name: "filter",
-                in: "query",
-                schema: new OA\Schema(
-                    type: "object",
-                    properties: [
-                        new OA\Property(
-                            property: "keywords",
-                            description: "[OPTIONAL] Search keywords",
-                            type: "string",
-                            default: ""
-                        )
-                    ]
-                )
+                name: 'page',
+                in: 'query',
+                description: 'Page number (1-based)',
+                schema: new OA\Schema(type: 'integer', default: 1)
+            ),
+            new OA\Parameter(
+                name: 'limit',
+                in: 'query',
+                description: 'Rows per page (max 100)',
+                schema: new OA\Schema(type: 'integer', default: 20)
+            ),
+            new OA\Parameter(
+                name: 'keywords',
+                in: 'query',
+                description: 'Case-insensitive name search',
+                schema: new OA\Schema(type: 'string', default: '')
             ),
         ]
     )]
-    #[OA\Response(response: '200', description: "Success")]
+    #[OA\Response(response: 200, description: 'Success')]
     public function get(Request $request, Response $response): Response
     {
-        $get                = $request->getQueryParams();
-        $keywords           = !empty($get['keywords']) ? $get['keywords'] : "";
-        $result['data']     = $this->customerModel->get($keywords);
-        
+        $query = $request->getQueryParams();
+        [$page, $limit] = Pagination::sanitize($query['page'] ?? null, $query['limit'] ?? null);
+        $keywords = trim((string) ($query['keywords'] ?? ''));
 
-        return JsonResponse::withJson($response, $result, 200);
+        $totalData = $this->customerModel->count_get($keywords);
+        $data = $this->customerModel->get($keywords, $page, $limit);
+
+        return JsonResponse::success($response, $data, JsonResponse::DEFAULT_SUCCESS_MESSAGE, [
+            'total_page' => Pagination::total_pages($totalData, $limit),
+            'total_data' => $totalData,
+        ]);
     }
 
     #[OA\Post(
-        path: '/customer/add', 
-        tags: ["Customer"], 
-        description: 'Add new customer data.', 
-        summary: "Add new customer data",
+        path: '/customer/add',
+        tags: [OpenApiTags::CUSTOMER],
+        description: 'Create a customer. Requires an admin token.',
+        summary: 'Create customer',
+        security: [['auth_token' => []]],
         requestBody: new OA\RequestBody(
-            required: true, 
-            description: "Data", 
+            required: true,
             content: new OA\MediaType(
-                mediaType: "application/x-www-form-urlencoded",
+                mediaType: 'application/x-www-form-urlencoded',
                 schema: new OA\Schema(
-                    type: "object",
-                    required: ["name"],
+                    type: 'object',
+                    required: ['name'],
                     properties: [
-                        new OA\Property(
-                            property: "name",
-                            description: "Name",
-                            type: "string"
-                        )
+                        new OA\Property(property: 'name', description: 'Customer name', type: 'string'),
                     ]
                 )
             )
         )
     )]
-    #[OA\Response(response: '200', description: "Success")]
+    #[OA\Response(response: 200, description: 'Success')]
+    #[OA\Response(response: 400, description: 'Validation failed')]
+    #[OA\Response(response: 401, description: 'Missing or invalid token')]
+    #[OA\Response(response: 403, description: 'Access denied')]
     public function add(Request $request, Response $response): Response
     {
-        $post           = $request->getParsedBody();
-        $name           = isset($post["name"]) ? $post["name"] : '';
+        $name = trim((string) (($request->getParsedBody() ?? [])['name'] ?? ''));
+        if ($name === '') {
+            return JsonResponse::error($response, 'Name is required.', [], [], HttpStatus::BAD_REQUEST);
+        }
 
-        $result['status']   = $this->customerModel->add($name);
+        if (!$this->customerModel->add($name)) {
+            return JsonResponse::error(
+                $response,
+                'Customer name already exists.',
+                [],
+                [],
+                HttpStatus::BAD_REQUEST
+            );
+        }
 
-        return JsonResponse::withJson($response, $result, 200);
+        return JsonResponse::success($response, [], 'Customer created.');
     }
 
     #[OA\Post(
-        path: '/customer/update', 
-        tags: ["Customer"], 
-        description: 'Update customer data.', 
-        summary: "Update customer data",
+        path: '/customer/update',
+        tags: [OpenApiTags::CUSTOMER],
+        description: 'Rename a customer. Requires an admin token.',
+        summary: 'Update customer',
+        security: [['auth_token' => []]],
         requestBody: new OA\RequestBody(
-            required: true, 
-            description: "Data", 
+            required: true,
             content: new OA\MediaType(
-                mediaType: "application/x-www-form-urlencoded",
+                mediaType: 'application/x-www-form-urlencoded',
                 schema: new OA\Schema(
-                    type: "object",
-                    required: ["id", "name"],
+                    type: 'object',
+                    required: ['id', 'name'],
                     properties: [
-                        new OA\Property(
-                            property: "id",
-                            description: "ID",
-                            type: "string"
-                        ),
-                        new OA\Property(
-                            property: "name",
-                            description: "Name",
-                            type: "string"
-                        )
+                        new OA\Property(property: 'id', description: 'Customer id', type: 'integer'),
+                        new OA\Property(property: 'name', description: 'Customer name', type: 'string'),
                     ]
                 )
             )
         )
     )]
-    #[OA\Response(response: '200', description: "Success")]
+    #[OA\Response(response: 200, description: 'Success')]
+    #[OA\Response(response: 400, description: 'Validation failed')]
+    #[OA\Response(response: 401, description: 'Missing or invalid token')]
+    #[OA\Response(response: 403, description: 'Access denied')]
     public function update(Request $request, Response $response): Response
     {
-        $post           = $request->getParsedBody();
-        $id             = isset($post["id"]) ? $post["id"] : '';
-        $name           = isset($post["name"]) ? $post["name"] : '';
+        $post = $request->getParsedBody() ?? [];
+        $id = filter_var($post['id'] ?? null, FILTER_VALIDATE_INT);
+        $name = trim((string) ($post['name'] ?? ''));
 
-        $result['status']   = $this->customerModel->update($id, $name);
+        if ($id === false || $id <= 0 || $name === '') {
+            return JsonResponse::error(
+                $response,
+                'A positive id and a name are required.',
+                [],
+                [],
+                HttpStatus::BAD_REQUEST
+            );
+        }
 
-        return JsonResponse::withJson($response, $result, 200);
+        $this->customerModel->update($id, $name);
+
+        return JsonResponse::success($response, [], 'Customer updated.');
     }
 
     #[OA\Delete(
-        path: '/customer/delete', 
-        tags: ["Customer"], 
-        description: 'Delete customer data.', 
-        summary: "Delete customer data",
+        path: '/customer/delete',
+        tags: [OpenApiTags::CUSTOMER],
+        description: 'Delete a customer. Requires an admin token.',
+        summary: 'Delete customer',
+        security: [['auth_token' => []]],
         requestBody: new OA\RequestBody(
-            required: true, 
-            description: "Data", 
+            required: true,
             content: new OA\MediaType(
-                mediaType: "application/x-www-form-urlencoded",
+                mediaType: 'application/x-www-form-urlencoded',
                 schema: new OA\Schema(
-                    type: "object",
-                    required: ["id"],
+                    type: 'object',
+                    required: ['id'],
                     properties: [
-                        new OA\Property(
-                            property: "id",
-                            description: "ID",
-                            type: "int"
-                        )
+                        new OA\Property(property: 'id', description: 'Customer id', type: 'integer'),
                     ]
                 )
             )
         )
     )]
-    #[OA\Response(response: '200', description: "Success")]
+    #[OA\Response(response: 200, description: 'Success')]
+    #[OA\Response(response: 400, description: 'Validation failed')]
+    #[OA\Response(response: 401, description: 'Missing or invalid token')]
+    #[OA\Response(response: 403, description: 'Access denied')]
     public function delete(Request $request, Response $response): Response
     {
-        $post           = $request->getParsedBody();
-        $id             = isset($post["id"]) ? $post["id"] : '';
+        $post = $request->getParsedBody() ?? [];
+        $id = filter_var($post['id'] ?? null, FILTER_VALIDATE_INT);
 
-        $result['status']   = $this->customerModel->delete($id);
+        if ($id === false || $id <= 0) {
+            return JsonResponse::error(
+                $response,
+                'A positive id is required.',
+                [],
+                [],
+                HttpStatus::BAD_REQUEST
+            );
+        }
 
-        return JsonResponse::withJson($response, $result, 200);
+        $this->customerModel->delete($id);
+
+        return JsonResponse::success($response, [], 'Customer deleted.');
     }
 }
