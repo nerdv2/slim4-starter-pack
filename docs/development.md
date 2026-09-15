@@ -166,9 +166,30 @@ preserved, routes named and registered, input validated.
 
 ## Testing
 
-There is no automated test suite yet. `phinx-testing.php` configures an SQLite database
-(`storage/test_database.sqlite`) so a future PHPUnit setup can run migrations without a server, and
-`DB_DRIVER=sqlite` lets the application run against SQLite locally:
+The test suite runs on PHPUnit with SQLite; no database server is required. `tests/bootstrap.php`
+forces `DB_DRIVER=sqlite` and a throwaway `storage/test_database.sqlite`, `Tests\TestCase` applies
+the Phinx migrations once per run, cleans the tables before every test and exposes HTTP helpers
+(`createRequest`, `handle`, `json`, `authHeader`).
+
+```bash
+composer run test              # all suites
+composer run test-unit         # tests/Unit
+composer run test-integration  # tests/Integration
+```
+
+Layout:
+
+```text
+tests/
+├── bootstrap.php              # forces the SQLite test environment
+├── TestCase.php               # app bootstrap, migrations, HTTP helpers, cleanup
+├── TestFactory.php            # Faker-backed row factories
+├── Unit/                      # helpers and other isolated classes
+└── Integration/Controller/    # endpoints exercised through the Slim app
+```
+
+Test configuration lives in `phpunit.xml`. Keep tests deterministic and never point them at a real
+database. To run the application itself against SQLite locally:
 
 ```bash
 DB_DRIVER=sqlite DB_NAME=storage/test_database.sqlite composer run migrate

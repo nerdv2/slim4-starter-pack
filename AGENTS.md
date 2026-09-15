@@ -21,6 +21,9 @@ composer run generate-openapi-docs    # regenerate public/openapi.yaml + .json
 composer run analyse                  # PHPStan level 5 (zero findings)
 composer run phpcs                    # PSR-12 code style check
 composer run check                    # composer validate + analyse + phpcs
+composer run test                     # PHPUnit suites (SQLite)
+composer run test-unit                # unit suite only
+composer run test-integration         # integration suite only
 php -l path/to/file.php               # syntax check
 ```
 
@@ -73,6 +76,7 @@ Target directory layout:
 | `src/Constants/` | Named values (`HttpStatus`, `DateFormat`, `OpenApiTags`). |
 | `src/Interfaces/` | Shared contracts (`ModelInterface`). |
 | `src/View/` | Twig templates (Swagger UI, redirects). |
+| `tests/` | PHPUnit suites (`Unit`, `Integration`), `TestCase` and `TestFactory`; SQLite-backed, never a real database. |
 
 ## 5. Implementation Conventions
 
@@ -202,6 +206,7 @@ docs(agents): add contributor and agent guidelines
 ## 8. Before You Finish
 
 - [ ] `composer run check` passes (composer validate + PHPStan + PHPCS).
+- [ ] `composer run test` passes; tests run on SQLite, never against a real database.
 - [ ] `php -l` passes for every changed PHP file.
 - [ ] No new dependencies, no new frameworks, no hand-assembled response envelopes.
 - [ ] Routes are registered in `src/App/Routes.php` and named.

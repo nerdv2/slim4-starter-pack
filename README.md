@@ -92,6 +92,7 @@ composer run check      # composer validate + PHPStan + PHPCS
 composer run analyse    # PHPStan level 5
 composer run phpcs      # PSR-12 code style
 composer run phpcbf     # auto-fix code style
+composer run test       # PHPUnit suites (SQLite, no database server required)
 ```
 
 ## Server deployment
