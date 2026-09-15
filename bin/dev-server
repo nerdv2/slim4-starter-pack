@@ -1,0 +1,165 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Development runner: starts the PHP built-in server and the background worker
+ * together, prefixes their output and restarts the worker if it exits.
+ *
+ * Usage: php bin/dev-server [options]
+ */
+
+$options = [];
+foreach (array_slice($argv, 1) as $argument) {
+    if (preg_match('/^--([a-z-]+)(?:=(.+))?$/', $argument, $matches) === 1) {
+        $options[$matches[1]] = $matches[2] ?? true;
+    }
+}
+
+if (isset($options['help'])) {
+    echo "Slim 4 Starter Pack - Development Server\n\n";
+    echo "Usage:\n  php bin/dev-server [options]\n\n";
+    echo "Options:\n";
+    echo "  --host=HOST     Webserver host (default: localhost)\n";
+    echo "  --port=PORT     Webserver port (default: 8080)\n";
+    echo "  --queue=QUEUE   Worker queue (default: default)\n";
+    echo "  --no-worker     Start the webserver only\n";
+    echo "  --worker-only   Start the worker only\n";
+    echo "  --help          Show this help\n";
+    exit(0);
+}
+
+$host = is_string($options['host'] ?? null) ? $options['host'] : 'localhost';
+$port = is_string($options['port'] ?? null) ? $options['port'] : '8080';
+$queue = is_string($options['queue'] ?? null) ? $options['queue'] : 'default';
+$noWorker = isset($options['no-worker']);
+$workerOnly = isset($options['worker-only']);
+$root = dirname(__DIR__);
+
+$processes = [];
+$running = true;
+
+$start = static function (string $name, string $command) use (&$processes, $root): void {
+    $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+    $process = proc_open($command, $descriptors, $pipes, $root);
+    if (!is_resource($process)) {
+        fwrite(STDERR, "[ERROR] Could not start {$name}.\n");
+        exit(1);
+    }
+
+    stream_set_blocking($pipes[1], false);
+    stream_set_blocking($pipes[2], false);
+
+    $processes[$name] = ['process' => $process, 'pipes' => $pipes, 'buffers' => [1 => '', 2 => '']];
+};
+
+$stopAll = static function () use (&$processes, &$running): void {
+    $running = false;
+
+    foreach ($processes as $info) {
+        $status = proc_get_status($info['process']);
+        if ($status['running']) {
+            proc_terminate($info['process']);
+        }
+        foreach ($info['pipes'] as $pipe) {
+            if (is_resource($pipe)) {
+                fclose($pipe);
+            }
+        }
+        proc_close($info['process']);
+    }
+
+    $processes = [];
+};
+
+if (function_exists('pcntl_async_signals')) {
+    pcntl_async_signals(true);
+    $shutdown = static function () use ($stopAll): void {
+        fwrite(STDOUT, "\n[SHUTDOWN] Stopping processes...\n");
+        $stopAll();
+        exit(0);
+    };
+    pcntl_signal(SIGINT, $shutdown);
+    pcntl_signal(SIGTERM, $shutdown);
+}
+register_shutdown_function($stopAll);
+
+printf("Slim 4 Starter Pack - Development Server\n");
+
+$workerCommand = sprintf(
+    '%s %s %s',
+    escapeshellarg(PHP_BINARY),
+    escapeshellarg($root . '/bin/background-worker'),
+    escapeshellarg($queue)
+);
+
+if (!$workerOnly) {
+    $start('webserver', sprintf(
+        '%s -S %s:%s -t public',
+        escapeshellarg(PHP_BINARY),
+        escapeshellarg($host),
+        escapeshellarg($port)
+    ));
+    printf("  Webserver: http://%s:%s\n", $host, $port);
+}
+if (!$noWorker) {
+    $start('worker', $workerCommand);
+    printf("  Worker:    queue=%s\n", $queue);
+}
+printf("  Press Ctrl+C to stop\n\n");
+
+$drain = static function (string $name) use (&$processes): void {
+    foreach ([1, 2] as $index) {
+        $pipe = $processes[$name]['pipes'][$index] ?? null;
+        if (!is_resource($pipe)) {
+            continue;
+        }
+
+        $chunk = (string) fread($pipe, 8192);
+        if ($chunk === '') {
+            continue;
+        }
+
+        $processes[$name]['buffers'][$index] .= $chunk;
+        while (($position = strpos($processes[$name]['buffers'][$index], "\n")) !== false) {
+            $line = substr($processes[$name]['buffers'][$index], 0, $position);
+            $processes[$name]['buffers'][$index] = substr($processes[$name]['buffers'][$index], $position + 1);
+            printf("[%s] %s\n", strtoupper($name), rtrim($line, "\r"));
+        }
+    }
+};
+
+while ($running) {
+    foreach (array_keys($processes) as $name) {
+        $status = proc_get_status($processes[$name]['process']);
+
+        if ($status['running']) {
+            $drain($name);
+            continue;
+        }
+
+        $drain($name);
+        foreach ($processes[$name]['pipes'] as $pipe) {
+            if (is_resource($pipe)) {
+                fclose($pipe);
+            }
+        }
+        proc_close($processes[$name]['process']);
+        unset($processes[$name]);
+
+        if ($name === 'webserver') {
+            printf("[WEBSERVER] stopped; shutting down.\n");
+            $stopAll();
+            break 2;
+        }
+
+        if ($name === 'worker') {
+            printf("[WORKER] exited; restarting in 2s...\n");
+            sleep(2);
+            $start('worker', $workerCommand);
+        }
+    }
+
+    usleep(100000);
+}

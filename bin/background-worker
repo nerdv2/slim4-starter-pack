@@ -1,0 +1,121 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Background worker: consumes jobs from the queue configured in .env.
+ *
+ * Usage: php bin/background-worker [queue_name]
+ */
+
+require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../src/App/DotEnv.php';
+
+use Monolog\Formatter\LineFormatter;
+use Monolog\Handler\StreamHandler;
+use Monolog\Level;
+use Monolog\Logger;
+use Oeltima\SimpleQueue\JobRegistry;
+use Oeltima\SimpleQueue\QueueManager;
+use Oeltima\SimpleQueue\Storage\PdoJobStorage;
+use Oeltima\SimpleQueue\Worker;
+use Oeltima\SimpleQueue\WorkerOptions;
+use Pimple\Container;
+
+$queue = $argv[1] ?? 'default';
+if (in_array($queue, ['--help', '-h'], true)) {
+    echo "Slim 4 Starter Pack - Background Worker\n\n";
+    echo "Usage:\n";
+    echo "  php bin/background-worker [queue_name]\n\n";
+    echo "Arguments:\n";
+    echo "  queue_name  Queue to consume (default: default)\n";
+    exit(0);
+}
+if (!preg_match('/^[a-zA-Z0-9_-]{1,64}$/', $queue)) {
+    fwrite(STDERR, "[ERROR] Queue name must contain only letters, numbers, underscores or hyphens.\n");
+    exit(Worker::EXIT_ERROR);
+}
+
+$envInt = static function (string $name, int $default, int $minimum = 0): int {
+    $value = $_ENV[$name] ?? $_SERVER[$name] ?? getenv($name);
+    if ($value === false || $value === null || $value === '') {
+        return $default;
+    }
+    if (filter_var($value, FILTER_VALIDATE_INT) === false || (int) $value < $minimum) {
+        throw new InvalidArgumentException(sprintf('%s must be an integer >= %d.', $name, $minimum));
+    }
+
+    return (int) $value;
+};
+
+$logPath = __DIR__ . '/../storage/log/';
+if (!is_dir($logPath)) {
+    mkdir($logPath, 0775, true);
+}
+
+// The worker refuses lock directories it does not own, so keep locks under storage/.
+$lockPath = __DIR__ . '/../storage/locks/';
+if (!is_dir($lockPath)) {
+    mkdir($lockPath, 0700, true);
+}
+
+$logger = new Logger('background_worker');
+$formatter = new LineFormatter("[%datetime%] %channel%.%level_name%: %message% %context%\n", 'Y-m-d H:i:s', true, true);
+foreach ([
+    new StreamHandler($logPath . 'worker.log', Level::Debug),
+    new StreamHandler('php://stdout', Level::Info),
+] as $handler) {
+    $handler->setFormatter($formatter);
+    $logger->pushHandler($handler);
+}
+
+try {
+    $container = new Container();
+    (require __DIR__ . '/../src/App/Database.php');
+    (require __DIR__ . '/../src/App/Services.php');
+
+    /** @var PdoJobStorage $jobStorage */
+    $jobStorage = $container['jobStorage'];
+    /** @var QueueManager $queueManager */
+    $queueManager = $container['queueManager'];
+    /** @var JobRegistry $jobRegistry */
+    $jobRegistry = $container['jobRegistry'];
+
+    $options = new WorkerOptions(
+        lockFile: sprintf('%s/background-worker-%s.lock', $lockPath, $queue),
+        pollTimeout: $envInt('JOB_POLL_TIMEOUT_SECONDS', 5, 0),
+        stuckJobTtl: $envInt('JOB_STUCK_TTL_SECONDS', 900, 1),
+        retryBaseDelay: $envInt('JOB_RETRY_BASE_DELAY_SECONDS', 2, 1),
+        retryMaxDelay: $envInt('JOB_RETRY_MAX_DELAY_SECONDS', 300, 1),
+        maxJobs: $envInt('JOB_MAX_JOBS', 500, 0),
+        maxTime: $envInt('JOB_MAX_TIME_SECONDS', 3600, 0),
+        memoryLimit: $envInt('JOB_MEMORY_LIMIT_BYTES', 268435456, 0),
+        promoteInterval: (float) $envInt('JOB_PROMOTE_INTERVAL_SECONDS', 5, 1),
+        promoteLimit: $envInt('JOB_PROMOTE_LIMIT', 100, 1),
+        recoveryInterval: (float) $envInt('JOB_RECOVERY_INTERVAL_SECONDS', 60, 1),
+        eventListener: static function (string $event, array $data) use ($logger): void {
+            $logger->info('Queue event', ['event' => $event] + $data);
+        },
+    );
+
+    $logger->info('Worker started', [
+        'queue' => $queue,
+        'pid' => getmypid(),
+        'driver' => $queueManager->driver()::class,
+    ]);
+
+    $worker = new Worker(
+        storage: $jobStorage,
+        queueManager: $queueManager,
+        registry: $jobRegistry,
+        logger: $logger,
+        queue: $queue,
+        options: $options,
+    );
+
+    exit($worker->run());
+} catch (Throwable $exception) {
+    fwrite(STDERR, sprintf("[FATAL] %s: %s\n", $exception::class, $exception->getMessage()));
+    exit(Worker::EXIT_ERROR);
+}

@@ -16,4 +16,6 @@ storage/cache/*
 !storage/cache/.gitkeep
 storage/log/*
 !storage/log/.gitkeep
+storage/locks/*
+!storage/locks/.gitkeep
 storage/test_database.sqlite

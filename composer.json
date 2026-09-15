@@ -59,6 +59,12 @@
         "serve": [
             "php -S localhost:8080 -t public"
         ],
+        "dev": [
+            "php bin/dev-server"
+        ],
+        "worker": [
+            "php bin/background-worker"
+        ],
         "generate-openapi-docs": [
             "./vendor/bin/openapi src/Controller -o public/openapi.yaml",
             "./vendor/bin/openapi src/Controller --format json -o public/openapi.json"
