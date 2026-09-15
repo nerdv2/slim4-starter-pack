@@ -16,6 +16,8 @@ How the Slim 4 Starter Pack is structured and how a request flows through it.
 | API docs | OpenAPI via `zircote/swagger-php` 6 + bundled Swagger UI |
 | Migrations | Phinx |
 | Logging | Monolog (`storage/log/error.log`) |
+| Error monitoring | Sentry (optional, `SENTRY_DSN`) |
+| Observability | Health endpoints, `X-Request-ID` request tracing |
 | Uploads | AWS S3 / local filesystem helper |
 
 ## Directory Layout
@@ -30,11 +32,14 @@ src/
 │   ├── Database.php     `db` (primary) and `db_read` (replica) connections
 │   ├── DotEnv.php       Loads .env (cached parse) and sets the timezone
 │   ├── ErrorHandler.php JSON error handler for uncaught exceptions
-│   ├── Middlewares.php  Routing, optional BasePath, body parser, error, Twig
+│   ├── Logging.php      Container logger (storage/log/error.log)
+│   ├── Middlewares.php  Routing, BasePath, body parser, error, request id, Twig
 │   ├── NotFound.php     Catch-all 404 route
-│   └── Routes.php       Route definitions
+│   ├── Routes.php       Route definitions
+│   ├── Sentry.php       Optional Sentry initialization from SENTRY_DSN
+│   └── Services.php     Container registration for models and services
 ├── Constants/           HttpStatus, DateFormat, OpenApiTags
-├── Controller/          HTTP handlers (BaseController, Hello, Customer, OpenApi)
+├── Controller/          HTTP handlers (BaseController, Hello, Customer, Health, OpenApi)
 ├── DTO/                 Request payloads (fromRequest/validate/isValid)
 ├── Exceptions/          Typed application exceptions
 ├── Helper/              Stateless utilities (JsonResponse, Pagination, JwtHelper, ...)
@@ -58,17 +63,20 @@ storage/log/             Application error log
 2. `DotEnv.php` — loads `.env` when readable, caches the parse in
    `storage/cache/env.cache.json` (mtime + size invalidation, atomic write) and applies
    `DEFAULT_TIMEZONE` (UTC fallback).
-3. `Container.php` — creates the Slim app with a Pimple PSR-11 container.
-4. `ErrorHandler.php` — builds the custom error handler.
-5. `Middlewares.php` — routing, optional BasePath (`SLIM_BASH_PATH`), body parsing, error handling
-   and Twig (compiled templates cached in `storage/cache/twig`).
-6. `Cors.php` — registered when `CORS_ENABLED` is true (default: development/testing or
+3. `Sentry.php` — initializes error reporting when `SENTRY_DSN` is set (no request bodies, query
+   strings stripped, sensitive headers sanitized).
+4. `Container.php` — creates the Slim app with a Pimple PSR-11 container.
+5. `Logging.php` — registers the Monolog `logger` channel (`storage/log/error.log`).
+6. `ErrorHandler.php` — builds the custom error handler.
+7. `Middlewares.php` — routing, optional BasePath (`SLIM_BASH_PATH`), body parsing, error handling,
+   request id and Twig (compiled templates cached in `storage/cache/twig`).
+8. `Cors.php` — registered when `CORS_ENABLED` is true (default: development/testing or
    `localhost`).
-7. `Database.php` — registers the `db` and `db_read` SimpleQuery connections.
-8. `Services.php` — registers models and services (for example `customerModel`,
-   `customerService`) in the container.
-9. `Routes.php` — registers every route.
-10. `NotFound.php` — catch-all route that throws `HttpNotFoundException`.
+9. `Database.php` — registers the `db` and `db_read` SimpleQuery connections.
+10. `Services.php` — registers models and services (for example `customerModel`,
+    `customerService`) in the container.
+11. `Routes.php` — registers every route.
+12. `NotFound.php` — catch-all route that throws `HttpNotFoundException`.
 
 Finally `public/index.php` calls `$app->run()`.
 
@@ -85,6 +93,7 @@ Slim App (src/App/App.php)
   │
   ├─ CORS middleware          (outermost, optional: Access-Control-* headers, OPTIONS replies)
   ├─ Twig middleware          (renderer for the Swagger UI page)
+  ├─ Request ID middleware    (X-Request-ID attribute and response header)
   ├─ Error middleware         (JSON problem+json errors)
   ├─ Body parsing middleware  (getParsedBody() for form/JSON bodies)
   ├─ BasePath middleware      (only when SLIM_BASH_PATH is set)
@@ -271,6 +280,20 @@ Helpers are called statically; they never touch the container.
   `DISPLAY_ERROR_DETAILS`, so production serves the compiled cache. Clear the directory after
   template changes when running with `DISPLAY_ERROR_DETAILS=false`.
 
+## Observability
+
+- **Request ID**: `RequestIdMiddleware` accepts or generates `X-Request-ID`, stores it as the
+  `request_id` request attribute and echoes it on every response, including errors. It is
+  registered outside the error middleware so the error handler and its log entries can use it.
+- **Health endpoints**: `GET /health` (liveness), `GET /health/ready` (database readiness) and
+  `GET /health/detailed` (database, storage, memory; protected by `X-Health-Token` /
+  `HEALTHCHECK_TOKEN`). Development and testing bypass the token when it is empty.
+- **Logging**: the `logger` container service writes to `storage/log/error.log`; uncaught
+  exceptions are logged with status, class, request path and request id.
+- **Sentry**: `src/App/Sentry.php` initializes the SDK when `SENTRY_DSN` is set. Request bodies
+  are never attached, query strings are stripped and authorization/cookie/health headers are
+  sanitized; 5xx responses report the exception.
+
 ## Error Handling
 
 Uncaught exceptions go through `src/App/ErrorHandler.php`:
@@ -278,8 +301,9 @@ Uncaught exceptions go through `src/App/ErrorHandler.php`:
 - HTTP status comes from the exception code when it is `400..599`, otherwise `500`.
 - The response is `application/problem+json` with `{message, status: "error", code}`; `class` and
   `file` are only included when `DISPLAY_ERROR_DETAILS=true`.
-- Errors are logged to `storage/log/error.log` with status, class and request path (plus the
-  exception when log details are enabled).
+- Errors are logged to `storage/log/error.log` with status, class, request path and request id
+  (plus the exception when log details are enabled).
+- 5xx responses are reported to Sentry when it is configured.
 
 ## Related Docs
 

@@ -56,9 +56,11 @@ php -l path/to/file.php               # syntax check
 public/index.php
   └─ src/App/App.php
        ├─ DotEnv.php      (.env → $_SERVER / $_ENV; parse cached in storage/cache)
+       ├─ Sentry.php      (optional error reporting from SENTRY_DSN)
        ├─ Container.php   (Pimple PSR-11 + Slim AppFactory)
+       ├─ Logging.php     (Monolog channel → storage/log/error.log)
        ├─ ErrorHandler.php (JSON errors for uncaught exceptions)
-       ├─ Middlewares.php (routing, body parsing, error handling, Twig)
+       ├─ Middlewares.php (routing, body parsing, error handling, request id, Twig)
        ├─ Cors.php        (development only; gated by CORS_ENABLED)
        ├─ Database.php    ('db' primary, 'db_read' replica; mysql/mariadb/sqlite)
        ├─ Services.php    (container registration for models and services)

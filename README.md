@@ -63,6 +63,7 @@ composer run token -- id=1 type=admin              # development JWT
 - OpenAPI 3 specification generated from `#[OA\...]` attributes (swagger-php 6) with a bundled Swagger UI
 - DotEnv integration with a cached parse, plus a compiled Twig template cache
 - DTO validation, a service layer for business rules and typed exceptions that map to 4xx envelopes
+- Health endpoints, `X-Request-ID` request tracing and optional Sentry error reporting
 - Optional Redis and object storage (AWS S3, DO Spaces, etc.) configuration, including an upload helper
 - Quality gates: PHPStan level 5, PHPCS (PSR-12) and a combined `composer check`
 

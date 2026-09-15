@@ -175,6 +175,23 @@ composer run token -- id=1 type=admin
 A missing or too-short `JWT_SECRET` raises a configuration error (HTTP 500, and the message is
 visible when `DISPLAY_ERROR_DETAILS=true`); it never silently allows the request.
 
+## Request ID
+
+Every response carries `X-Request-ID`. Send your own to correlate logs across systems; otherwise
+the application generates `YYYYMMDD-{8 hex}-{4 hex}`. Log entries for uncaught exceptions include
+the same id.
+
+## Health Endpoints
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| `GET` | `/health` | none | Liveness probe: `{status: "ok", timestamp}`. |
+| `GET` | `/health/ready` | none | Readiness probe: database check, `503` when degraded. |
+| `GET` | `/health/detailed` | `X-Health-Token` | Database, storage and memory details; `401` without a valid token and `503` when no token is configured outside development/testing. |
+
+Health responses are plain JSON rather than the standard envelope so probes can consume them
+directly. Configure `HEALTHCHECK_TOKEN` in every deployed environment.
+
 ## Errors from Uncaught Exceptions
 
 `src/App/ErrorHandler.php` answers with `application/problem+json`:

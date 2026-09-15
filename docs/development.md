@@ -57,6 +57,8 @@ Then `composer run migrate` to create the example `customer` table.
 | `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME` | Primary connection (SQLite uses `DB_NAME` as the file path). |
 | `DB_*_READ` | Optional read replica; each value falls back to its primary counterpart. |
 | `DEFAULT_UPLOAD_TARGET` | `filesystem` (default) or `s3`. |
+| `SENTRY_DSN` | Optional Sentry DSN; empty disables error reporting. |
+| `HEALTHCHECK_TOKEN` | Token for `GET /health/detailed`; development and testing bypass it when empty. |
 | `CORS_ENABLED` | Enables CORS; defaults to on for development/testing or `localhost`. |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated exact origins; empty means wildcard. |
 | `CORS_ALLOW_CREDENTIALS` | Reflects credentials for allowed origins. |
