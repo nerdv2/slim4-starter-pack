@@ -19,8 +19,16 @@ return function (App $app, $customErrorHandler): void {
     $errorMiddleware = $app->addErrorMiddleware($displayError, true, true);
     $errorMiddleware->setDefaultErrorHandler($customErrorHandler);
 
-    // Create Twig
-    $twig = Twig::create(__DIR__ . '/../View/', ['cache' => false]);
+    // Create Twig — compiled templates are cached in storage; development
+    // re-checks template mtimes so edits apply immediately.
+    $twigCacheDir = __DIR__ . '/../../storage/cache/twig';
+    $twigCache = is_dir($twigCacheDir) || @mkdir($twigCacheDir, 0775, true)
+        ? $twigCacheDir
+        : false;
+    $twig = Twig::create(__DIR__ . '/../View/', [
+        'cache' => $twigCache,
+        'auto_reload' => $displayError,
+    ]);
 
     // Add Twig-View Middleware
     $app->add(TwigMiddleware::create($app, $twig));
