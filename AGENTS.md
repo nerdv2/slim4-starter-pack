@@ -5,8 +5,8 @@ Rules for working on the **Slim 4 Starter Pack** (`nerdv2/slim4-skeleton`).
 > **Status:** this file describes the target conventions for this repository. The codebase is being
 > migrated to them in phases P1–P6 (configuration, data layer, HTTP contract, authentication,
 > example module, tooling). Follow these rules for new and touched code. Files that have not been
-> migrated yet (`AuthToken`, hand-assembled responses) are tracked internally and will be
-> rewritten phase by phase.
+> migrated yet (hand-assembled responses) are tracked internally and will be rewritten phase by
+> phase.
 
 ---
 
@@ -18,6 +18,7 @@ composer run serve                    # dev server at http://127.0.0.1:8080
 composer run migrate                  # run Phinx migrations
 composer run migrate:rollback         # roll back the last migration
 composer run seed                     # run Phinx seeders
+composer run token -- id=1 type=admin # generate a development JWT
 composer run generate-openapi-docs    # regenerate public/openapi.yaml + .json
 php -l path/to/file.php               # syntax check
 ```
@@ -78,7 +79,7 @@ Target directory layout:
 
 ### Controllers
 
-- Extend `App\Controller\BaseController` (added in P4) instead of duplicating a container property.
+- Extend `App\Controller\BaseController` instead of duplicating a container property.
 - Validate and cast request input (`getQueryParams()`, `getParsedBody()`) before passing it to a
   model. Never let raw request values reach SQL.
 - Always answer through `App\Helper\JsonResponse`; never assemble the envelope by hand.
@@ -127,8 +128,14 @@ public function list(Request $request, Response $response): Response
 ### Routes
 
 - Register routes in `src/App/Routes.php` with a name (`->setName('...')`).
-- Protected routes declare middleware next to the route:
-  `->add(new AuthenticationMiddleware())->add(new AuthorizationMiddleware(['admin']))`.
+- Protected routes declare middleware next to the route. Slim runs the last-added middleware
+  first, so add the authorization check first and authentication last:
+
+  ```php
+  ->add(new AuthorizationMiddleware(['admin']))
+  ->add(new AuthenticationMiddleware())
+  ```
+
 - Keep the `NotFound.php` catch-all as the last registration.
 
 ### Configuration
@@ -187,7 +194,7 @@ docs(agents): add contributor and agent guidelines
 | P1b | Caching: env parse + Twig templates | done |
 | P2 | SimpleQuery + `BaseModel` + `Pagination` | done |
 | P3 | Response envelope, error handling, CORS | done |
-| P4 | `JwtHelper`, auth middleware, `BaseController` | pending |
+| P4 | `JwtHelper`, auth middleware, `BaseController` | done |
 | P5 | Example module + OpenAPI (swagger-php 6) | pending |
 | P6 | PHPStan/PHPCS, developer docs | pending |
 
