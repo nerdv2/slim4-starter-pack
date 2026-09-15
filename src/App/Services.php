@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Helper\CacheRedis;
 use App\Jobs\ExampleJob;
 use App\Model\CustomerModel;
 use App\Service\CustomerService;
@@ -14,6 +15,10 @@ use Pimple\Container;
 use Pimple\Psr11\Container as Psr11Container;
 
 /** @var Container $container */
+$container['cacheRedis'] = static function (): CacheRedis {
+    return new CacheRedis();
+};
+
 $container['customerModel'] = static function (Container $container): CustomerModel {
     /** @var Connection $db */
     $db = $container['db'];
@@ -24,8 +29,10 @@ $container['customerModel'] = static function (Container $container): CustomerMo
 $container['customerService'] = static function (Container $container): CustomerService {
     /** @var CustomerModel $model */
     $model = $container['customerModel'];
+    /** @var CacheRedis $cache */
+    $cache = $container['cacheRedis'];
 
-    return new CustomerService($model);
+    return new CustomerService($model, $cache);
 };
 
 $container['jobStorage'] = static function (Container $container): PdoJobStorage {
