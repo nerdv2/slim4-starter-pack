@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Middleware\AuthenticationMiddleware;
+use App\Middleware\AuthorizationMiddleware;
+
 // Start Route
 $app->get('/', 'App\Controller\Hello:getStatus')->setName('main');
 $app->get('/hello', 'App\Controller\Hello:getStatusAPI')->setName('api.status');
@@ -11,6 +14,15 @@ $app->get('/swaggerui', 'App\Controller\Hello:openSwaggerUI')->setName('swagger_
 
 // Customer API Route
 $app->get('/customer', 'App\Controller\Customer:get')->setName('api.customer.list');
-$app->post('/customer/add', 'App\Controller\Customer:add')->setName('api.customer.add');
-$app->post('/customer/update', 'App\Controller\Customer:update')->setName('api.customer.update');
-$app->delete('/customer/delete', 'App\Controller\Customer:delete')->setName('api.customer.delete');
+$app->post('/customer/add', 'App\Controller\Customer:add')
+    ->setName('api.customer.add')
+    ->add(new AuthorizationMiddleware(['admin']))
+    ->add(new AuthenticationMiddleware());
+$app->post('/customer/update', 'App\Controller\Customer:update')
+    ->setName('api.customer.update')
+    ->add(new AuthorizationMiddleware(['admin']))
+    ->add(new AuthenticationMiddleware());
+$app->delete('/customer/delete', 'App\Controller\Customer:delete')
+    ->setName('api.customer.delete')
+    ->add(new AuthorizationMiddleware(['admin']))
+    ->add(new AuthenticationMiddleware());
