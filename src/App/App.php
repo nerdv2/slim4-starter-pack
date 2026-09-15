@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 require __DIR__ . '/../../vendor/autoload.php';
 require __DIR__ . '/DotEnv.php';
+require __DIR__ . '/Sentry.php';
 $app = require __DIR__ . '/Container.php';
+(require __DIR__ . '/Logging.php');
 $customErrorHandler = require __DIR__ . '/ErrorHandler.php';
 (require __DIR__ . '/Middlewares.php')($app, $customErrorHandler);
 

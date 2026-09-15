@@ -3,8 +3,7 @@
 declare(strict_types=1);
 
 use App\Constants\HttpStatus;
-use Monolog\Handler\StreamHandler;
-use Monolog\Level;
+use App\Middleware\RequestIdMiddleware;
 use Monolog\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface;
@@ -46,27 +45,25 @@ $customErrorHandler = function (
     $response->getBody()->write($body === false ? '{"status":"error","code":' . $statusCode . '}' : $body);
 
     if ($logErrors) {
-        static $log = null;
-        if ($log === null) {
-            $logPath = __DIR__ . '/../../storage/log/';
-            if (!is_dir($logPath)) {
-                mkdir($logPath, 0775, true);
-            }
-
-            $log = new Logger('app');
-            $log->pushHandler(new StreamHandler($logPath . 'error.log', Level::Error));
-        }
+        /** @var Logger $logger */
+        $logger = $app->getContainer()->get('logger');
 
         $context = [
             'status' => $statusCode,
             'class' => $className,
             'request_uri' => $request->getUri()->getPath(),
+            'request_id' => $request->getAttribute(RequestIdMiddleware::ATTRIBUTE),
         ];
         if ($logErrorDetails) {
             $context['exception'] = $exception;
         }
 
-        $log->error($exception->getMessage(), $context);
+        $logger->error($exception->getMessage(), $context);
+    }
+
+    if ($statusCode >= 500) {
+        // No-op when Sentry is not configured (SENTRY_DSN empty).
+        \Sentry\captureException($exception);
     }
 
     return $response
