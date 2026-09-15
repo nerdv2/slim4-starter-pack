@@ -19,6 +19,7 @@
         "predis/predis": "^1.1",
         "robmorgan/phinx": "^0.15.5",
         "selective/basepath": "^2.1",
+        "sentry/sentry": "^4.31",
         "slim/psr7": "^1.0.0",
         "slim/slim": "^4.8",
         "slim/twig-view": "^3.2",
