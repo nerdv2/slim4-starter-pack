@@ -27,7 +27,10 @@
         "zircote/swagger-php": "^6.0"
     },
     "require-dev": {
+        "ext-pdo_sqlite": "*",
+        "fakerphp/faker": "^1.24",
         "phpstan/phpstan": "^2.2",
+        "phpunit/phpunit": "^12.0",
         "squizlabs/php_codesniffer": "^4.0"
     },
     "config": {
