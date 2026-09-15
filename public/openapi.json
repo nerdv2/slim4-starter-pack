@@ -1,8 +1,8 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "Slim4 Starter Pack",
-        "description": "This is backend API for Slim 4 Starter Pack, please use responsibly.",
+        "title": "Slim 4 Starter Pack",
+        "description": "Backend API for the Slim 4 Starter Pack, please use responsibly.",
         "contact": {
             "email": "admin@example.com"
         },
@@ -14,22 +14,35 @@
                 "tags": [
                     "Customer"
                 ],
-                "summary": "Retrieve data for customer",
-                "description": "Retrieve data for customer.",
+                "summary": "List customers",
+                "description": "Retrieve a paginated customer list with optional keyword search.",
                 "operationId": "40b7f7503eba97a0c6399d9ef21c7e12",
                 "parameters": [
                     {
-                        "name": "filter",
+                        "name": "page",
                         "in": "query",
+                        "description": "Page number (1-based)",
                         "schema": {
-                            "properties": {
-                                "keywords": {
-                                    "description": "[OPTIONAL] Search keywords",
-                                    "type": "string",
-                                    "default": ""
-                                }
-                            },
-                            "type": "object"
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Rows per page (max 100)",
+                        "schema": {
+                            "type": "integer",
+                            "default": 20
+                        }
+                    },
+                    {
+                        "name": "keywords",
+                        "in": "query",
+                        "description": "Case-insensitive name search",
+                        "schema": {
+                            "type": "string",
+                            "default": ""
                         }
                     }
                 ],
@@ -45,11 +58,10 @@
                 "tags": [
                     "Customer"
                 ],
-                "summary": "Add new customer data",
-                "description": "Add new customer data.",
+                "summary": "Create customer",
+                "description": "Create a customer. Requires an admin token.",
                 "operationId": "867eea20c068a227fbe1205518f2e61d",
                 "requestBody": {
-                    "description": "Data",
                     "required": true,
                     "content": {
                         "application/x-www-form-urlencoded": {
@@ -59,7 +71,7 @@
                                 ],
                                 "properties": {
                                     "name": {
-                                        "description": "Name",
+                                        "description": "Customer name",
                                         "type": "string"
                                     }
                                 },
@@ -71,8 +83,22 @@
                 "responses": {
                     "200": {
                         "description": "Success"
+                    },
+                    "400": {
+                        "description": "Validation failed"
+                    },
+                    "401": {
+                        "description": "Missing or invalid token"
+                    },
+                    "403": {
+                        "description": "Access denied"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "auth_token": []
+                    }
+                ]
             }
         },
         "/customer/update": {
@@ -80,11 +106,10 @@
                 "tags": [
                     "Customer"
                 ],
-                "summary": "Update customer data",
-                "description": "Update customer data.",
+                "summary": "Update customer",
+                "description": "Rename a customer. Requires an admin token.",
                 "operationId": "9f19530c46fd84f8d843e55f604a23d8",
                 "requestBody": {
-                    "description": "Data",
                     "required": true,
                     "content": {
                         "application/x-www-form-urlencoded": {
@@ -95,11 +120,11 @@
                                 ],
                                 "properties": {
                                     "id": {
-                                        "description": "ID",
-                                        "type": "string"
+                                        "description": "Customer id",
+                                        "type": "integer"
                                     },
                                     "name": {
-                                        "description": "Name",
+                                        "description": "Customer name",
                                         "type": "string"
                                     }
                                 },
@@ -111,8 +136,22 @@
                 "responses": {
                     "200": {
                         "description": "Success"
+                    },
+                    "400": {
+                        "description": "Validation failed"
+                    },
+                    "401": {
+                        "description": "Missing or invalid token"
+                    },
+                    "403": {
+                        "description": "Access denied"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "auth_token": []
+                    }
+                ]
             }
         },
         "/customer/delete": {
@@ -120,11 +159,10 @@
                 "tags": [
                     "Customer"
                 ],
-                "summary": "Delete customer data",
-                "description": "Delete customer data.",
+                "summary": "Delete customer",
+                "description": "Delete a customer. Requires an admin token.",
                 "operationId": "f7369b083d75d0520aa3f8ae9becb0ed",
                 "requestBody": {
-                    "description": "Data",
                     "required": true,
                     "content": {
                         "application/x-www-form-urlencoded": {
@@ -134,7 +172,7 @@
                                 ],
                                 "properties": {
                                     "id": {
-                                        "description": "ID",
+                                        "description": "Customer id",
                                         "type": "integer"
                                     }
                                 },
@@ -143,6 +181,35 @@
                         }
                     }
                 },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "400": {
+                        "description": "Validation failed"
+                    },
+                    "401": {
+                        "description": "Missing or invalid token"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    }
+                },
+                "security": [
+                    {
+                        "auth_token": []
+                    }
+                ]
+            }
+        },
+        "/": {
+            "get": {
+                "tags": [
+                    "Default"
+                ],
+                "summary": "Application status",
+                "description": "Application name and active version.",
+                "operationId": "bb83ade5a3e703625a5f77635b32f245",
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -155,7 +222,7 @@
                 "tags": [
                     "Default"
                 ],
-                "summary": "Default route",
+                "summary": "Application status payload",
                 "description": "Retrieves application status and active version.",
                 "operationId": "2f1d27cd57d1fe6e5ae4db2202c78875",
                 "responses": {
@@ -163,6 +230,31 @@
                         "description": "Success"
                     }
                 }
+            }
+        },
+        "/swaggerui": {
+            "get": {
+                "tags": [
+                    "Default"
+                ],
+                "summary": "API documentation UI",
+                "description": "Bundled Swagger UI for the generated OpenAPI specification.",
+                "operationId": "92f116eb8e435cd737089f9bedb5b8d7",
+                "responses": {
+                    "200": {
+                        "description": "HTML page"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "auth_token": {
+                "type": "apiKey",
+                "description": "JWT issued by the application; send the raw token or 'Bearer <token>'.",
+                "name": "Authorization",
+                "in": "header"
             }
         }
     },
