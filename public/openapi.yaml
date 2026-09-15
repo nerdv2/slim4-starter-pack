@@ -6,6 +6,57 @@ info:
     email: admin@example.com
   version: v1.0.0
 paths:
+  /admin/background-jobs/example:
+    post:
+      tags:
+        - Diagnostic
+      summary: 'Dispatch example job'
+      description: 'Dispatch the example background job. Requires an admin token.'
+      operationId: 4d4985e31c174e3f0a6960e423e0b5c8
+      requestBody:
+        required: false
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              properties:
+                message:
+                  description: 'Message echoed by the job'
+                  type: string
+              type: object
+      responses:
+        '200':
+          description: 'Job queued'
+        '401':
+          description: 'Missing or invalid token'
+        '403':
+          description: 'Access denied'
+      security:
+        -
+          auth_token: []
+  '/admin/background-jobs/{id}':
+    get:
+      tags:
+        - Diagnostic
+      summary: 'Background job status'
+      description: 'Retrieve a background job status. Requires an admin token.'
+      operationId: 0a586f4c956852d1a201d7e56de4e52f
+      parameters:
+        -
+          name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success
+        '401':
+          description: 'Missing or invalid token'
+        '404':
+          description: 'Job not found'
+      security:
+        -
+          auth_token: []
   /customer:
     get:
       tags:
@@ -222,11 +273,11 @@ components:
       in: header
 tags:
   -
-    name: Customer
-    description: Customer
-  -
     name: Diagnostic
     description: Diagnostic
+  -
+    name: Customer
+    description: Customer
   -
     name: Default
     description: Default

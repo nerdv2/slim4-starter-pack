@@ -22,6 +22,16 @@ $app->get('/health/detailed', 'App\Controller\Health:detailed')
     ->setName('health.detailed')
     ->add(new HealthTokenMiddleware());
 
+// Background job routes
+$app->post('/admin/background-jobs/example', 'App\Controller\BackgroundJob:dispatchExample')
+    ->setName('api.admin.background_jobs.dispatch_example')
+    ->add(new AuthorizationMiddleware(['admin']))
+    ->add(new AuthenticationMiddleware());
+$app->get('/admin/background-jobs/{id}', 'App\Controller\BackgroundJob:status')
+    ->setName('api.admin.background_jobs.status')
+    ->add(new AuthorizationMiddleware(['admin']))
+    ->add(new AuthenticationMiddleware());
+
 // Customer API Route
 $app->get('/customer', 'App\Controller\Customer:get')->setName('api.customer.list');
 $app->post('/customer/add', 'App\Controller\Customer:add')
