@@ -4,72 +4,56 @@ declare(strict_types=1);
 
 namespace App\Model;
 
-final class CustomerModel
+final class CustomerModel extends BaseModel
 {
-    protected $database;
-
-    protected function db()
+    public function get($keywords = ''): array
     {
-        $pdo = new \Pecee\Pixie\QueryBuilder\QueryBuilderHandler($this->database);
-        return $pdo;
+        $query = $this->db()->table('customer')
+            ->select('customer.id', 'customer.name');
+
+        $this->applyKeywordSearch($query, 'customer.name', (string) $keywords);
+
+        return $query->get();
     }
 
-    public function __construct(\Pecee\Pixie\Connection $database)
+    public function add($name): bool
     {
-        $this->database       = $database;
-    }
+        $exists = $this->db()->table('customer')
+            ->where('customer.name', '=', $name)
+            ->count();
 
-    public function get($keywords = "")
-    {
-        $getData = $this->db()->table('customer');
-        $getData->select($getData->raw("customer.id, customer.name"));
-
-        if(!empty($keywords)) {
-            $getData->where(function ($relation) use ($keywords) {
-                $relation->where($relation->raw('lower(customer.name)'), 'LIKE', $relation->raw("LOWER('%" . $keywords . "%')"));
-            });
+        if ($exists > 0) {
+            return false;
         }
 
-        return $getData->get();
+        return $this->db()->table('customer')->insert([
+            'name' => $name,
+            'created' => $this->now(),
+        ]) > 0;
     }
 
-    public function add($name)
+    public function update($id, $name): bool
     {
-        $getData = $this->db()->table('customer');
-        $getData->select($getData->raw('customer.id'));
-        $getData->where('customer.name', '=', $name);
-        $checkData = $getData->count();
+        $conflict = $this->db()->table('customer')
+            ->where('customer.name', '=', $name)
+            ->whereNot('customer.id', '=', $id)
+            ->count();
 
-        $status                     = false;
-        if ($checkData == 0) {
-            $insertdata['name']         = $name;
-            $insertdata['created']      = date('Y-m-d H:i:s');
-
-            $status                     = $this->db()->table('customer')->insert($insertdata);
+        if ($conflict === 0) {
+            $this->db()->table('customer')
+                ->where('customer.id', '=', $id)
+                ->update(['name' => $name]);
         }
-        return $status;
-    }
 
-    public function update($id, $name)
-    {
-        $getData = $this->db()->table('customer');
-        $getData->select($getData->raw('customer.id'));
-        $getData->where('customer.name', '=', $name);
-        $getData->whereNot('customer.id', '=', $id);
-        $checkData = $getData->count();
-
-        if ($checkData == 0) {
-            $data['name']         = $name;
-
-            $this->db()->table('customer')->where('customer.id', '=', $id)->update($data);
-        }
         return true;
     }
 
-    public function delete($id)
+    public function delete($id): bool
     {
-        $status = true;
-        $this->db()->table('customer')->where('customer.id', '=', $id)->delete();
-        return $status;
+        $this->db()->table('customer')
+            ->where('customer.id', '=', $id)
+            ->delete();
+
+        return true;
     }
 }
