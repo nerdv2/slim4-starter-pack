@@ -63,7 +63,7 @@ Then `composer run migrate` to create the example `customer` table.
 | `CORS_ALLOWED_ORIGINS` | Comma-separated exact origins; empty means wildcard. |
 | `CORS_ALLOW_CREDENTIALS` | Reflects credentials for allowed origins. |
 | `CORS_ALLOWED_HEADERS`, `CORS_ALLOWED_METHODS`, `CORS_MAX_AGE` | CORS response values. |
-| `REDIS_SERVER_*` | Optional Redis connection used by `CacheRedis`. |
+| `REDIS_SERVER_HOST`, `REDIS_SERVER_PORT`, `REDIS_SERVER_PASSWORD`, `REDIS_SERVER_DATABASE`, `REDIS_SERVER_PREFIX` | Optional Redis cache; caching is disabled when host/port are empty. See [Caching](caching.md). |
 | `QUEUE_DRIVER`, `QUEUE_REDIS_PREFIX` | Background queue driver (`auto`/`database`/`redis`) and Redis key prefix. |
 | `JOB_*` | Worker tuning: poll timeout, retries, recycling and recovery; see [Background Jobs](background-jobs.md). |
 | `S3_ENDPOINT`, `S3_REGION`, `S3_KEY`, `S3_SECRET`, `S3_BUCKET`, `S3_CDN_DOMAIN` | Object storage for `UploadHelper`. |
@@ -293,7 +293,8 @@ tests/
 ```
 
 Test configuration lives in `phpunit.xml`. Keep tests deterministic and never point them at a real
-database. To run the application itself against SQLite locally:
+database. Cache tests additionally require a reachable Redis: set `REDIS_SERVER_HOST` and
+`REDIS_SERVER_PORT` to run them, otherwise they are skipped. To run the application itself against SQLite locally:
 
 ```bash
 DB_DRIVER=sqlite DB_NAME=storage/test_database.sqlite composer run migrate

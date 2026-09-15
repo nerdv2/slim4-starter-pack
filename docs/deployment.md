@@ -104,6 +104,13 @@ docker run --detach --name slim4-worker --restart unless-stopped \
   to survive container replacement.
 - Apply the same migrations before starting workers so the `background_job` table exists.
 
+## Optional Redis
+
+Set `REDIS_SERVER_HOST`, `REDIS_SERVER_PORT` and optionally `REDIS_SERVER_PASSWORD`,
+`REDIS_SERVER_DATABASE` and `REDIS_SERVER_PREFIX` to enable the response cache. Leave them empty
+and the application serves every request from the database. Use a distinct
+`REDIS_SERVER_PREFIX` per environment when a Redis instance is shared. See [Caching](caching.md).
+
 ### Docker Compose Example
 
 ```yaml
@@ -122,6 +129,8 @@ services:
       DB_NAME: starter
       DB_USER: starter
       DB_PASS: secret
+      REDIS_SERVER_HOST: redis
+      REDIS_SERVER_PORT: 6379
     depends_on:
       mysql:
         condition: service_healthy
@@ -141,6 +150,8 @@ services:
       DB_NAME: starter
       DB_USER: starter
       DB_PASS: secret
+      REDIS_SERVER_HOST: redis
+      REDIS_SERVER_PORT: 6379
     depends_on:
       mysql:
         condition: service_healthy
@@ -162,8 +173,14 @@ services:
     volumes:
       - mysql:/var/lib/mysql
 
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis:/data
+
 volumes:
   mysql:
+  redis:
   storage:
 ```
 

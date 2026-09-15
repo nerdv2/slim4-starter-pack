@@ -11,7 +11,7 @@ How the Slim 4 Starter Pack is structured and how a request flows through it.
 | Database | MySQL / MariaDB / SQLite through `oeltimacreation/php-simplequery` 0.6 (no ORM) |
 | DI container | Pimple (PSR-11) |
 | Templates | Twig 3 (`slim/twig-view`) |
-| Cache | Parsed `.env` and compiled Twig templates (filesystem) |
+| Cache | Optional Redis (`CacheRedis`) + parsed `.env` and compiled Twig templates (filesystem) |
 | Authentication | JWT (`lcobucci/jwt` 5) |
 | API docs | OpenAPI via `zircote/swagger-php` 6 + bundled Swagger UI |
 | Migrations | Phinx |
@@ -77,8 +77,8 @@ storage/log/             Application error log
 8. `Cors.php` — registered when `CORS_ENABLED` is true (default: development/testing or
    `localhost`).
 9. `Database.php` — registers the `db` and `db_read` SimpleQuery connections.
-10. `Services.php` — registers models, services and the queue infrastructure (`jobStorage`,
-    `queueManager`, `jobRegistry`, `jobDispatcher`) in the container.
+10. `Services.php` — registers models, services, the cache (`cacheRedis`) and the queue
+    infrastructure (`jobStorage`, `queueManager`, `jobRegistry`, `jobDispatcher`) in the container.
 11. `Routes.php` — registers every route.
 12. `NotFound.php` — catch-all route that throws `HttpNotFoundException`.
 
@@ -273,6 +273,13 @@ Helpers are called statically; they never touch the container.
 
 `src/View/` contains the Twig template for the bundled Swagger UI. Render it through
 `TwigResponse::render()`.
+
+### Caching
+
+Read caches use `App\Helper\CacheRedis` (optional Redis) with namespaced keys and O(1)
+invalidation: `namespaced()` composes a key, `rememberJson()` fills it and writes call `bump()`
+to orphan the namespace. Access fails open when Redis is unconfigured or unreachable. See
+[Caching](caching.md).
 
 ### Background Jobs
 

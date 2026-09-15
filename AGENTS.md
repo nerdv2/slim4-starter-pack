@@ -136,6 +136,13 @@ public function list(Request $request, Response $response): Response
   `jobDispatcher` service.
 - Keep payloads small and JSON-serializable; return a result value or throw to trigger retries.
 
+### Caching
+
+- Read caches use `App\Helper\CacheRedis` with `namespaced()` keys and `rememberJson()`; writes
+  invalidate with `bump('<namespace>')`.
+- Cache access must fail open (Redis is optional) and stay bounded: always pass a TTL and respect
+  `MAX_PAYLOAD_BYTES`; document new cached endpoints and their invalidation in `docs/caching.md`.
+
 ### Models
 
 - Extend `App\Model\BaseModel` and obtain a fresh builder per method with

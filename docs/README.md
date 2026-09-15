@@ -10,6 +10,7 @@ Developer documentation for the Slim 4 Starter Pack.
 | [Development](development.md) | Local setup, environment variables, commands and adding an endpoint. |
 | [Background Jobs](background-jobs.md) | Queue architecture, job handlers, the worker and the dev runner. |
 | [Deployment](deployment.md) | Container image, migrations, worker containers, Compose and CI. |
+| [Caching](caching.md) | Redis design, key format, invalidation map and operations. |
 
 Related files:
 
