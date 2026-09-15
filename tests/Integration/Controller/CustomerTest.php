@@ -96,7 +96,66 @@ final class CustomerTest extends TestCase
         $payload = $this->json($response);
 
         self::assertSame(400, $response->getStatusCode());
-        self::assertStringContainsString('Name is required', $payload['message']);
+        self::assertSame('Validation failed.', $payload['message']);
+        self::assertSame('Name is required.', $payload['data']['name']);
+    }
+
+    public function testUpdateValidatesThePayload(): void
+    {
+        $response = $this->handle($this->createRequest(
+            'POST',
+            '/customer/update',
+            ['Authorization' => $this->authHeader()],
+            ['id' => 'abc', 'name' => '']
+        ));
+        $payload = $this->json($response);
+
+        self::assertSame(400, $response->getStatusCode());
+        self::assertArrayHasKey('id', $payload['data']);
+        self::assertArrayHasKey('name', $payload['data']);
+    }
+
+    public function testUpdateMissingCustomerReturnsNotFound(): void
+    {
+        $response = $this->handle($this->createRequest(
+            'POST',
+            '/customer/update',
+            ['Authorization' => $this->authHeader()],
+            ['id' => '999', 'name' => 'Acme']
+        ));
+        $payload = $this->json($response);
+
+        self::assertSame(404, $response->getStatusCode());
+        self::assertSame('Customer not found.', $payload['message']);
+    }
+
+    public function testDeleteMissingCustomerReturnsNotFound(): void
+    {
+        $response = $this->handle($this->createRequest(
+            'DELETE',
+            '/customer/delete',
+            ['Authorization' => $this->authHeader()],
+            ['id' => '999']
+        ));
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testRenameRejectsDuplicateNames(): void
+    {
+        $this->seedCustomers(['Acme', 'Beta']);
+
+        $row = $this->connection()->table('customer')->where('customer.name', '=', 'Beta')->first();
+        self::assertNotNull($row);
+
+        $response = $this->handle($this->createRequest(
+            'POST',
+            '/customer/update',
+            ['Authorization' => $this->authHeader()],
+            ['id' => (string) $row->id, 'name' => 'Acme']
+        ));
+
+        self::assertSame(400, $response->getStatusCode());
     }
 
     public function testAddRejectsDuplicateNames(): void
