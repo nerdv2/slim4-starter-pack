@@ -186,7 +186,7 @@ docs(agents): add contributor and agent guidelines
 | P1 | Configuration & environment | done |
 | P1b | Caching: env parse + Twig templates | done |
 | P2 | SimpleQuery + `BaseModel` + `Pagination` | done |
-| P3 | Response envelope, error handling, CORS | pending |
+| P3 | Response envelope, error handling, CORS | done |
 | P4 | `JwtHelper`, auth middleware, `BaseController` | pending |
 | P5 | Example module + OpenAPI (swagger-php 6) | pending |
 | P6 | PHPStan/PHPCS, developer docs | pending |
