@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/12.5/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         cacheDirectory=".phpunit.cache"
+         colors="true"
+         executionOrder="depends,defects"
+         beStrictAboutOutputDuringTests="true"
+         failOnRisky="true"
+         failOnWarning="true">
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory>src</directory>
+        </include>
+        <exclude>
+            <directory>src/View</directory>
+            <file>src/App/App.php</file>
+        </exclude>
+    </source>
+
+    <php>
+        <env name="APP_ENVIRONMENT" value="testing" force="true"/>
+        <env name="DEFAULT_TIMEZONE" value="UTC" force="true"/>
+        <env name="APP_BASE_URL" value="http://localhost:8080" force="true"/>
+        <env name="JWT_SECRET" value="0123456789abcdef0123456789abcdef" force="true"/>
+        <env name="JWT_IDENTIFIER" value="" force="true"/>
+        <env name="JWT_TTL" value="+7 day" force="true"/>
+        <env name="DB_DRIVER" value="sqlite" force="true"/>
+        <env name="DB_NAME" value="storage/test_database.sqlite" force="true"/>
+        <env name="DISPLAY_ERROR_DETAILS" value="true" force="true"/>
+    </php>
+</phpunit>

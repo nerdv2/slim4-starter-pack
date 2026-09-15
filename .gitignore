@@ -10,8 +10,10 @@
 /.env
 /.scannerwork/
 /.phpunit.result.cache
+.phpunit.cache/
 
 storage/cache/*
 !storage/cache/.gitkeep
 storage/log/*
 !storage/log/.gitkeep
+storage/test_database.sqlite

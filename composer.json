@@ -48,6 +48,11 @@
             "App\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
     "scripts": {
         "serve": [
             "php -S localhost:8080 -t public"
@@ -81,6 +86,15 @@
             "@composer validate --no-check-publish",
             "@analyse",
             "@phpcs"
+        ],
+        "test": [
+            "./vendor/bin/phpunit"
+        ],
+        "test-unit": [
+            "./vendor/bin/phpunit --testsuite=Unit"
+        ],
+        "test-integration": [
+            "./vendor/bin/phpunit --testsuite=Integration"
         ]
     }
 }

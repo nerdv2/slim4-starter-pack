@@ -19,6 +19,9 @@ return [
         'testing' => [
             'adapter' => 'sqlite',
             'name' => __DIR__ . '/storage/test_database.sqlite',
+            // Phinx appends ".sqlite3" to SQLite paths by default; the
+            // application connects to the exact DB_NAME, so keep it empty.
+            'suffix' => '',
         ],
     ],
     'version_order' => 'creation',
