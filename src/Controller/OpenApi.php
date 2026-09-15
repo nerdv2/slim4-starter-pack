@@ -19,6 +19,13 @@ use OpenApi\Attributes as OA;
     name: "Authorization",
     description: "JWT issued by the application; send the raw token or 'Bearer <token>'."
 )]
+#[OA\SecurityScheme(
+    securityScheme: "health_token",
+    type: "apiKey",
+    in: "header",
+    name: "X-Health-Token",
+    description: "Token configured through HEALTHCHECK_TOKEN for detailed health diagnostics."
+)]
 final class OpenApi
 {
 }

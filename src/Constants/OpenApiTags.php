@@ -8,4 +8,5 @@ final class OpenApiTags
 {
     public const string DEFAULT = 'Default';
     public const string CUSTOMER = 'Customer';
+    public const string DIAGNOSTIC = 'Diagnostic';
 }

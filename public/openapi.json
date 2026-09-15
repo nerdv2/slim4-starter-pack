@@ -145,6 +145,9 @@
                     },
                     "403": {
                         "description": "Access denied"
+                    },
+                    "404": {
+                        "description": "Customer not found"
                     }
                 },
                 "security": [
@@ -193,11 +196,73 @@
                     },
                     "403": {
                         "description": "Access denied"
+                    },
+                    "404": {
+                        "description": "Customer not found"
                     }
                 },
                 "security": [
                     {
                         "auth_token": []
+                    }
+                ]
+            }
+        },
+        "/health": {
+            "get": {
+                "tags": [
+                    "Diagnostic"
+                ],
+                "summary": "Liveness probe",
+                "description": "Liveness probe: returns 200 while the application is running.",
+                "operationId": "005094b45e3b944cefef1fbca340824f",
+                "responses": {
+                    "200": {
+                        "description": "Application is running"
+                    }
+                }
+            }
+        },
+        "/health/ready": {
+            "get": {
+                "tags": [
+                    "Diagnostic"
+                ],
+                "summary": "Readiness probe",
+                "description": "Readiness probe: verifies database connectivity.",
+                "operationId": "93f7d83475c3c52e13d012c6a17d9c82",
+                "responses": {
+                    "200": {
+                        "description": "Application is ready"
+                    },
+                    "503": {
+                        "description": "Service degraded or unavailable"
+                    }
+                }
+            }
+        },
+        "/health/detailed": {
+            "get": {
+                "tags": [
+                    "Diagnostic"
+                ],
+                "summary": "Detailed health check",
+                "description": "Detailed health status (database, storage, memory). Requires X-Health-Token.",
+                "operationId": "1b42783f3f855805763c0d56a412ab3c",
+                "responses": {
+                    "200": {
+                        "description": "Detailed health status"
+                    },
+                    "401": {
+                        "description": "Token missing or invalid"
+                    },
+                    "503": {
+                        "description": "Service degraded or diagnostics not configured"
+                    }
+                },
+                "security": [
+                    {
+                        "health_token": []
                     }
                 ]
             }
@@ -255,6 +320,12 @@
                 "description": "JWT issued by the application; send the raw token or 'Bearer <token>'.",
                 "name": "Authorization",
                 "in": "header"
+            },
+            "health_token": {
+                "type": "apiKey",
+                "description": "Token configured through HEALTHCHECK_TOKEN for detailed health diagnostics.",
+                "name": "X-Health-Token",
+                "in": "header"
             }
         }
     },
@@ -262,6 +333,10 @@
         {
             "name": "Customer",
             "description": "Customer"
+        },
+        {
+            "name": "Diagnostic",
+            "description": "Diagnostic"
         },
         {
             "name": "Default",

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Middleware\AuthenticationMiddleware;
 use App\Middleware\AuthorizationMiddleware;
+use App\Middleware\HealthTokenMiddleware;
 
 /** @var \Slim\App $app */
 
@@ -13,6 +14,13 @@ $app->get('/status', 'App\Controller\Hello:getStatusAPI')->setName('api.status')
 
 // Swagger Route
 $app->get('/swaggerui', 'App\Controller\Hello:openSwaggerUI')->setName('swagger_ui');
+
+// Health check routes
+$app->get('/health', 'App\Controller\Health:liveness')->setName('health.liveness');
+$app->get('/health/ready', 'App\Controller\Health:readiness')->setName('health.readiness');
+$app->get('/health/detailed', 'App\Controller\Health:detailed')
+    ->setName('health.detailed')
+    ->add(new HealthTokenMiddleware());
 
 // Customer API Route
 $app->get('/customer', 'App\Controller\Customer:get')->setName('api.customer.list');
