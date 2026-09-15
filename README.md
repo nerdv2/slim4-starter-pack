@@ -6,66 +6,110 @@ A slim starter project to allow developing using Slim 4 easier, contains REST AP
 
 This project started when I needed a replacement for CodeIgniter 3 for a more modern development environment while retaining the familiar Model-View-Controller (MVC) structure, with a lightweight enough framework to develop for.
 
+The conventions and structure follow what has been proven in production projects built from this
+starter (see [AGENTS.md](AGENTS.md) and the [documentation](docs/README.md)).
+
+## Requirements
+
+- PHP 8.3+ with `pdo_mysql` (`pdo_sqlite` for SQLite), `mbstring`, `json`, `openssl`, `curl` and
+  `fileinfo` extensions
+- Composer 2.x
+- MySQL 8.0+ / MariaDB 10.6+ (SQLite works for a quick local setup)
+- Redis and S3 credentials are optional
+
 ## Initial setup
 
-- ```composer install```
-- Copy .env.example to .env
-- Make sure the ```storage``` folder is writable
+```bash
+composer install
+cp .env.example .env
+# edit .env: database credentials and JWT_SECRET (openssl rand -hex 32)
+composer run migrate
+```
+
+- Make sure the `storage` folder is writable: the application writes the parsed env cache,
+  compiled Twig templates and the error log there.
 
 ## Starting application
 
-Execute ```composer run serve``` to start the development server, by default the application serves on http://127.0.0.1:8080
+Execute `composer run serve` to start the development server, by default the application serves on
+http://127.0.0.1:8080.
+
+Smoke checks:
+
+```bash
+curl -s localhost:8080/ | jq                       # application status envelope
+curl -s localhost:8080/swaggerui                   # Swagger UI
+composer run token -- id=1 type=admin              # development JWT
+```
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [docs/architecture.md](docs/architecture.md) | Stack, bootstrap sequence, request lifecycle and layering. |
+| [docs/api-conventions.md](docs/api-conventions.md) | Response envelope, authentication, pagination, errors and CORS. |
+| [docs/database.md](docs/database.md) | Connections, `BaseModel`, query patterns and migrations. |
+| [docs/development.md](docs/development.md) | Local setup, environment variables, commands and adding an endpoint. |
+| [AGENTS.md](AGENTS.md) | Contributor and AI-agent conventions. |
 
 ## Included components
 
-- Slim 4 scaffolding, including PSR-7 and PSR-11 implementation
-- Default error handling and response output, including log file output using Monolog
-- Database query builder built on the lightweight [pecee-pixie](https://github.com/skipperbent/pecee-pixie), inspired by CI3 & Eloquent
+- Slim 4 scaffolding, including PSR-7, PSR-11 and PSR-15 implementation
+- Query builder built on [oeltimacreation/php-simplequery](https://github.com/oeltimacreation/php-simplequery) (MySQL, MariaDB and SQLite; no ORM) with a shared `BaseModel`, pagination, keyword search and managed transactions
+- Standard JSON response envelope, pagination metadata and `application/problem+json` error output with Monolog logging
+- JWT authentication (lcobucci/jwt) with PSR-15 authentication/authorization middleware and a development token command
 - Database migration and seeder using [phinx](https://phinx.org/)
-- Twig templating engine included to help build frontend code, configured by default with View Components
-- REST API structure, including JWT token generation/validation, route handling, and OpenAPI/Swagger annotation for generating documentation
-- DotEnv integration, already configured for DB, Redis, Object Storage, and Application default parameters
-- Upload helper, with configuration for both filesystem and object storage (AWS S3, DO Spaces, etc.)
+- Twig templating engine, used for the bundled Swagger UI page
+- OpenAPI 3 specification generated from `#[OA\...]` attributes (swagger-php 6) with a bundled Swagger UI
+- DotEnv integration with a cached parse, plus a compiled Twig template cache
+- Optional Redis and object storage (AWS S3, DO Spaces, etc.) configuration, including an upload helper
+- Quality gates: PHPStan level 5, PHPCS (PSR-12) and a combined `composer check`
 
 ## Note on CORS (Cross-Origin Resource Sharing) configuration
 
-CORS is automatically enabled and included on every request to aid in local development when an application is running in localhost or with the PHP development server.
-This setup assumes that the webserver or reverse proxy will manage CORS, including preflight requests when deploying to a server.
+CORS is env-driven (`CORS_ENABLED`). By default it is enabled for `development`/`testing`
+environments and for `localhost`, which helps local development and the PHP development server.
+
+For production, either:
+
+- let the application handle CORS with `CORS_ENABLED=true` and an exact
+  `CORS_ALLOWED_ORIGINS` allowlist, or
+- disable it (`CORS_ENABLED=false`) and let the webserver or reverse proxy manage CORS, including
+  preflight requests.
+
+Do not do both at once: duplicate `Access-Control-Allow-*` headers confuse browsers.
 
 ## Generating OpenAPI/Swagger files
 
-- ```composer run generate-openapi-docs```
-- File will be generated in the public folder as openapi.json and openapi.yaml
-- When running the application, you can access the bundled Swagger UI by accessing http://127.0.0.1:8080/swaggerui
+- Run `composer run generate-openapi-docs`
+- Files are generated in `public/openapi.json` and `public/openapi.yaml`
+- When running the application, access the bundled Swagger UI at http://127.0.0.1:8080/swaggerui
+
+## Quality checks
+
+```bash
+composer run check      # composer validate + PHPStan + PHPCS
+composer run analyse    # PHPStan level 5
+composer run phpcs      # PSR-12 code style
+composer run phpcbf     # auto-fix code style
+```
 
 ## Server deployment
 
-When you deploy this application, make sure the webserver is pointing to the public folder by default, or use the virtual host setup for NGINX running on Ubuntu Server 24.04 LTS provided below.
+When you deploy this application, make sure the webserver is pointing to the `public` folder by
+default, or use the virtual host setup for NGINX running on Ubuntu Server 24.04 LTS provided below.
+CORS is handled by the application only in development; the proxy can manage it in production (see
+above).
 
 ```nginx
 server {
         listen 80;
         server_name     your_domain;
 
-        add_header 'Access-Control-Allow-Origin' '*';
-        add_header 'Access-Control-Allow-Methods' 'POST, GET, OPTIONS, DELETE, PUT';
-        add_header 'Access-Control-Allow-Headers' 'X-Requested-With, Content-Type, Origin, Authorization, Accept, Client-Security-Token, Accept-Encoding';
-
         root /var/www/slim4-starter-pack/public/;
         index index.php index.html;
 
         location / {
-                if ($request_method = 'OPTIONS') {
-                        add_header 'Access-Control-Allow-Origin' '*';
-                        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
-                        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization';
-
-                        add_header 'Access-Control-Max-Age' 1728000;
-                        add_header 'Content-Type' 'text/plain charset=UTF-8';
-                        add_header 'Content-Length' 0;
-                        return 204;
-                }
-
                 try_files $uri $uri/ /index.php$is_args$args;
         }
 
@@ -77,3 +121,6 @@ server {
         error_page 404 /index.php;
 }
 ```
+
+Protected endpoints require `JWT_SECRET` to be set in the environment; keep
+`DISPLAY_ERROR_DETAILS` disabled in production.
