@@ -15,6 +15,3 @@ storage/cache/*
 !storage/cache/.gitkeep
 storage/log/*
 !storage/log/.gitkeep
-
-# internal planning docs (not published)
-/docs/
