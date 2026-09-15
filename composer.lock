@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5abda4ef92d2e5ab40a5e9f2a6567d33",
+    "content-hash": "d8e34a077f728f323d59d920e30b18e1",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -1279,6 +1279,67 @@
                 "source": "https://github.com/nikic/FastRoute/tree/master"
             },
             "time": "2018-02-13T20:26:39+00:00"
+        },
+        {
+            "name": "oeltimacreation/php-simplequery",
+            "version": "v0.6.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/oeltimacreation/php-simplequery.git",
+                "reference": "6a9b22ea827888aac3818d7ea5ddddde01a66f11"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/oeltimacreation/php-simplequery/zipball/6a9b22ea827888aac3818d7ea5ddddde01a66f11",
+                "reference": "6a9b22ea827888aac3818d7ea5ddddde01a66f11",
+                "shasum": ""
+            },
+            "require": {
+                "ext-pdo": "*",
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "dealerdirect/phpcodesniffer-composer-installer": "^1.2",
+                "phpstan/extension-installer": "^1.4",
+                "phpstan/phpstan": "^2.2",
+                "phpstan/phpstan-deprecation-rules": "^2.0",
+                "phpstan/phpstan-phpunit": "^2.0",
+                "phpstan/phpstan-strict-rules": "^2.0",
+                "phpunit/phpunit": "^11.0",
+                "slevomat/coding-standard": "^8.22",
+                "squizlabs/php_codesniffer": "^4.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Oeltima\\SimpleQuery\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Gema Aji Wardian",
+                    "email": "gema@oeltimacreation.com"
+                }
+            ],
+            "description": "A small, framework-agnostic PDO query builder with deterministic SQL compilation",
+            "homepage": "https://github.com/oeltimacreation/php-simplequery",
+            "keywords": [
+                "database",
+                "mariadb",
+                "mysql",
+                "pdo",
+                "query-builder",
+                "sqlite"
+            ],
+            "support": {
+                "issues": "https://github.com/oeltimacreation/php-simplequery/issues",
+                "source": "https://github.com/oeltimacreation/php-simplequery"
+            },
+            "time": "2026-08-24T05:36:20+00:00"
         },
         {
             "name": "pecee/pixie",
