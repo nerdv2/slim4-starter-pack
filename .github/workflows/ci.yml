@@ -37,3 +37,51 @@ jobs:
 
       - name: Run tests
         run: composer run test
+
+  docker:
+    name: Container build and smoke test
+    runs-on: ubuntu-latest
+    needs: quality
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build image
+        run: |
+          docker build \
+            --build-arg IMAGE_VERSION=ci \
+            --build-arg VCS_REF=${{ github.sha }} \
+            --tag slim4-starter-pack:ci .
+
+      - name: Smoke test the container
+        run: |
+          set -Eeuo pipefail
+
+          docker rm -f slim4-smoke >/dev/null 2>&1 || true
+          trap 'docker rm -f slim4-smoke >/dev/null 2>&1 || true' EXIT
+
+          docker run --detach --name slim4-smoke --publish 18080:80 \
+            --env APP_ENVIRONMENT=testing \
+            --env DEFAULT_TIMEZONE=UTC \
+            --env APP_BASE_URL=http://localhost:18080 \
+            --env JWT_SECRET=0123456789abcdef0123456789abcdef \
+            --env HEALTHCHECK_TOKEN=smoke-token \
+            --env DB_DRIVER=sqlite \
+            --env DB_NAME=/tmp/smoke.sqlite \
+            slim4-starter-pack:ci
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:18080/health >/dev/null; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              docker logs slim4-smoke
+              exit 1
+            fi
+            sleep 2
+          done
+
+          docker exec slim4-smoke php vendor/bin/phinx migrate
+          curl --fail --silent --show-error http://127.0.0.1:18080/health/ready >/dev/null
+          docker exec slim4-smoke php -r 'require "/var/www/html/vendor/autoload.php";'
