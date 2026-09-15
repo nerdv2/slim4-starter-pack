@@ -9,7 +9,8 @@ final class CustomerModel extends BaseModel
     public function get(string $keywords = '', ?int $page = null, ?int $limit = null): array
     {
         $query = $this->db()->table('customer')
-            ->select('customer.id', 'customer.name');
+            ->select('customer.id', 'customer.name')
+            ->whereNull('deleted_at');
 
         $this->applyKeywordSearch($query, 'customer.name', $keywords);
         $this->applyPagination($query, $page, $limit);
@@ -19,50 +20,47 @@ final class CustomerModel extends BaseModel
 
     public function countGet(string $keywords = ''): int
     {
-        $query = $this->db()->table('customer');
+        $query = $this->db()->table('customer')->whereNull('deleted_at');
         $this->applyKeywordSearch($query, 'customer.name', $keywords);
 
         return $query->count();
     }
 
-    public function add(string $name): bool
+    public function exists(int|string $id): bool
     {
-        $exists = $this->db()->table('customer')
-            ->where('customer.name', '=', $name)
-            ->count();
+        return $this->existsById('customer', $id);
+    }
 
-        if ($exists > 0) {
-            return false;
+    public function existsByName(string $name, int|string|null $exceptId = null): bool
+    {
+        $query = $this->db()->table('customer')
+            ->where('customer.name', '=', $name)
+            ->whereNull('deleted_at');
+
+        if ($exceptId !== null) {
+            $query->whereNot('customer.id', '=', $exceptId);
         }
 
+        return $query->count() > 0;
+    }
+
+    public function create(string $name): int
+    {
         return $this->db()->table('customer')->insert([
             'name' => $name,
             'created' => $this->now(),
-        ]) > 0;
+        ]);
     }
 
-    public function update(int|string $id, string $name): bool
+    public function rename(int|string $id, string $name): int
     {
-        $conflict = $this->db()->table('customer')
-            ->where('customer.name', '=', $name)
-            ->whereNot('customer.id', '=', $id)
-            ->count();
-
-        if ($conflict === 0) {
-            $this->db()->table('customer')
-                ->where('customer.id', '=', $id)
-                ->update(['name' => $name]);
-        }
-
-        return true;
-    }
-
-    public function delete(int|string $id): bool
-    {
-        $this->db()->table('customer')
+        return $this->db()->table('customer')
             ->where('customer.id', '=', $id)
-            ->delete();
+            ->update(['name' => $name]);
+    }
 
-        return true;
+    public function deleteById(int|string $id): bool
+    {
+        return $this->softDelete('customer', 'id', $id);
     }
 }

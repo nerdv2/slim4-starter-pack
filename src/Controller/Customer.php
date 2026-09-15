@@ -6,9 +6,13 @@ namespace App\Controller;
 
 use App\Constants\HttpStatus;
 use App\Constants\OpenApiTags;
+use App\DTO\Request\CustomerIdRequest;
+use App\DTO\Request\CustomerRequest;
+use App\DTO\Request\CustomerUpdateRequest;
+use App\Exceptions\AppException;
 use App\Helper\JsonResponse;
 use App\Helper\Pagination;
-use App\Model\CustomerModel;
+use App\Service\CustomerService;
 use OpenApi\Attributes as OA;
 use Pimple\Psr11\Container;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -16,12 +20,12 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 final class Customer extends BaseController
 {
-    private CustomerModel $customerModel;
+    private CustomerService $customerService;
 
     public function __construct(Container $container)
     {
         parent::__construct($container);
-        $this->customerModel = new CustomerModel($this->db());
+        $this->customerService = $container->get('customerService');
     }
 
     #[OA\Get(
@@ -57,12 +61,11 @@ final class Customer extends BaseController
         [$page, $limit] = Pagination::sanitize($query['page'] ?? null, $query['limit'] ?? null);
         $keywords = trim((string) ($query['keywords'] ?? ''));
 
-        $totalData = $this->customerModel->countGet($keywords);
-        $data = $this->customerModel->get($keywords, $page, $limit);
+        $result = $this->customerService->list($keywords, $page, $limit);
 
-        return JsonResponse::success($response, $data, JsonResponse::DEFAULT_SUCCESS_MESSAGE, [
-            'total_page' => Pagination::totalPages($totalData, $limit),
-            'total_data' => $totalData,
+        return JsonResponse::success($response, $result['data'], JsonResponse::DEFAULT_SUCCESS_MESSAGE, [
+            'total_page' => $result['total_page'],
+            'total_data' => $result['total_data'],
         ]);
     }
 
@@ -92,19 +95,15 @@ final class Customer extends BaseController
     #[OA\Response(response: 403, description: 'Access denied')]
     public function add(Request $request, Response $response): Response
     {
-        $name = trim((string) (($request->getParsedBody() ?? [])['name'] ?? ''));
-        if ($name === '') {
-            return JsonResponse::error($response, 'Name is required.', [], [], HttpStatus::BAD_REQUEST);
+        $dto = CustomerRequest::fromRequest($request);
+        if (!$dto->isValid()) {
+            return $this->validationError($response, $dto->validate());
         }
 
-        if (!$this->customerModel->add($name)) {
-            return JsonResponse::error(
-                $response,
-                'Customer name already exists.',
-                [],
-                [],
-                HttpStatus::BAD_REQUEST
-            );
+        try {
+            $this->customerService->create($dto->name);
+        } catch (AppException $exception) {
+            return $this->errorResponse($response, $exception);
         }
 
         return JsonResponse::success($response, [], 'Customer created.');
@@ -135,23 +134,19 @@ final class Customer extends BaseController
     #[OA\Response(response: 400, description: 'Validation failed')]
     #[OA\Response(response: 401, description: 'Missing or invalid token')]
     #[OA\Response(response: 403, description: 'Access denied')]
+    #[OA\Response(response: 404, description: 'Customer not found')]
     public function update(Request $request, Response $response): Response
     {
-        $post = $request->getParsedBody() ?? [];
-        $id = filter_var($post['id'] ?? null, FILTER_VALIDATE_INT);
-        $name = trim((string) ($post['name'] ?? ''));
-
-        if ($id === false || $id <= 0 || $name === '') {
-            return JsonResponse::error(
-                $response,
-                'A positive id and a name are required.',
-                [],
-                [],
-                HttpStatus::BAD_REQUEST
-            );
+        $dto = CustomerUpdateRequest::fromRequest($request);
+        if (!$dto->isValid()) {
+            return $this->validationError($response, $dto->validate());
         }
 
-        $this->customerModel->update($id, $name);
+        try {
+            $this->customerService->rename($dto->id, $dto->name);
+        } catch (AppException $exception) {
+            return $this->errorResponse($response, $exception);
+        }
 
         return JsonResponse::success($response, [], 'Customer updated.');
     }
@@ -180,23 +175,28 @@ final class Customer extends BaseController
     #[OA\Response(response: 400, description: 'Validation failed')]
     #[OA\Response(response: 401, description: 'Missing or invalid token')]
     #[OA\Response(response: 403, description: 'Access denied')]
+    #[OA\Response(response: 404, description: 'Customer not found')]
     public function delete(Request $request, Response $response): Response
     {
-        $post = $request->getParsedBody() ?? [];
-        $id = filter_var($post['id'] ?? null, FILTER_VALIDATE_INT);
-
-        if ($id === false || $id <= 0) {
-            return JsonResponse::error(
-                $response,
-                'A positive id is required.',
-                [],
-                [],
-                HttpStatus::BAD_REQUEST
-            );
+        $dto = CustomerIdRequest::fromRequest($request);
+        if (!$dto->isValid()) {
+            return $this->validationError($response, $dto->validate());
         }
 
-        $this->customerModel->delete($id);
+        try {
+            $this->customerService->delete($dto->id);
+        } catch (AppException $exception) {
+            return $this->errorResponse($response, $exception);
+        }
 
         return JsonResponse::success($response, [], 'Customer deleted.');
+    }
+
+    /**
+     * @param array<string, string> $errors
+     */
+    private function validationError(Response $response, array $errors): Response
+    {
+        return JsonResponse::error($response, 'Validation failed.', $errors, [], HttpStatus::BAD_REQUEST);
     }
 }
