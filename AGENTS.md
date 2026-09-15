@@ -2,9 +2,9 @@
 
 Rules for working on the **Slim 4 Starter Pack** (`nerdv2/slim4-skeleton`).
 
-> **Status:** the codebase has been migrated to these conventions through phase P5 (configuration,
-> data layer, HTTP contract, authentication, example module). Phase P6 adds the quality gates and
-> developer docs. Follow these rules for new and touched code.
+> **Status:** the codebase follows these conventions (phases P0–P6: configuration, data layer,
+> HTTP contract, authentication, example module, quality gates and documentation). Follow them for
+> new and touched code.
 
 ---
 
@@ -18,18 +18,19 @@ composer run migrate:rollback         # roll back the last migration
 composer run seed                     # run Phinx seeders
 composer run token -- id=1 type=admin # generate a development JWT
 composer run generate-openapi-docs    # regenerate public/openapi.yaml + .json
+composer run analyse                  # PHPStan level 5 (zero findings)
+composer run phpcs                    # PSR-12 code style check
+composer run check                    # composer validate + analyse + phpcs
 php -l path/to/file.php               # syntax check
 ```
-
-Quality commands (`composer analyse`, `composer phpcs`, `composer check`) are added in phase P6.
 
 ## 2. Documentation Map
 
 | Document | Covers |
 |----------|--------|
 | [README.md](README.md) | Public overview, setup, deployment notes. |
+| [docs/](docs/README.md) | Developer guides: architecture, API conventions, database, development. Internal planning notes also live in `docs/` but are git-ignored. |
 | [public/openapi.yaml](public/openapi.yaml) + [.json](public/openapi.json) | Generated API reference (regenerate with the command above). |
-| `docs/` (local only, git-ignored) | Internal planning: reference analysis, gap analysis and the phased implementation plan. |
 
 ## 3. Golden Rules
 
@@ -93,7 +94,7 @@ public function list(Request $request, Response $response): Response
     $data = $this->model->list($get['keywords'] ?? '', $page, $limit);
 
     return JsonResponse::success($response, $data, 'Data ditemukan', [
-        'total_page' => Pagination::total_pages($total, $limit),
+        'total_page' => Pagination::totalPages($total, $limit),
         'total_data' => $total,
     ]);
 }
@@ -121,7 +122,7 @@ public function list(Request $request, Response $response): Response
 ### Pagination
 
 - `page` defaults to `1`, clamped to `>= 1`; `limit` defaults to `20`, clamped to `[1, 100]`.
-- Use `App\Helper\Pagination` (`sanitize`, `apply`, `total_pages`, `clamp`); never hand-roll
+- Use `App\Helper\Pagination` (`sanitize`, `apply`, `totalPages`, `clamp`); never hand-roll
   `LIMIT`/`OFFSET` math.
 - Always provide a deterministic `ORDER BY` with a unique tie-breaker (`id`).
 
@@ -196,10 +197,11 @@ docs(agents): add contributor and agent guidelines
 | P3 | Response envelope, error handling, CORS | done |
 | P4 | `JwtHelper`, auth middleware, `BaseController` | done |
 | P5 | Example module + OpenAPI (swagger-php 6) | done |
-| P6 | PHPStan/PHPCS, developer docs | pending |
+| P6 | PHPStan/PHPCS, developer docs | done |
 
 ## 8. Before You Finish
 
+- [ ] `composer run check` passes (composer validate + PHPStan + PHPCS).
 - [ ] `php -l` passes for every changed PHP file.
 - [ ] No new dependencies, no new frameworks, no hand-assembled response envelopes.
 - [ ] Routes are registered in `src/App/Routes.php` and named.
