@@ -34,7 +34,7 @@ php -l path/to/file.php               # syntax check
 | Document | Covers |
 |----------|--------|
 | [README.md](README.md) | Public overview, setup, deployment notes. |
-| [docs/](docs/README.md) | Developer guides: architecture, API conventions, database, development. Internal planning notes also live in `docs/` but are git-ignored. |
+| [docs/](docs/README.md) | Developer guides: architecture, API conventions, database, development, background jobs, deployment. Internal planning notes also live in `docs/` but are git-ignored. |
 | [public/openapi.yaml](public/openapi.yaml) + [.json](public/openapi.json) | Generated API reference (regenerate with the command above). |
 
 ## 3. Golden Rules

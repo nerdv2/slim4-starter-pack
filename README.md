@@ -101,10 +101,12 @@ composer run test       # PHPUnit suites (SQLite, no database server required)
 
 ## Server deployment
 
-When you deploy this application, make sure the webserver is pointing to the `public` folder by
-default, or use the virtual host setup for NGINX running on Ubuntu Server 24.04 LTS provided below.
-CORS is handled by the application only in development; the proxy can manage it in production (see
-above).
+The recommended path is the digest-pinned container image (`Dockerfile`), including a separate
+worker container and a CI build/smoke test — see [docs/deployment.md](docs/deployment.md).
+
+The application also runs on a plain PHP-FPM host: point the webserver at the `public` folder and
+use the virtual host setup for NGINX running on Ubuntu Server 24.04 LTS below. CORS is handled by
+the application only in development; the proxy can manage it in production (see above).
 
 ```nginx
 server {

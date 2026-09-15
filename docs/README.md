@@ -9,6 +9,7 @@ Developer documentation for the Slim 4 Starter Pack.
 | [Database](database.md) | Connections, `BaseModel`, query patterns and migrations. |
 | [Development](development.md) | Local setup, environment variables, commands and adding an endpoint. |
 | [Background Jobs](background-jobs.md) | Queue architecture, job handlers, the worker and the dev runner. |
+| [Deployment](deployment.md) | Container image, migrations, worker containers, Compose and CI. |
 
 Related files:
 
