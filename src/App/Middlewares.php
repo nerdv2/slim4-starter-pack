@@ -9,14 +9,18 @@ use Selective\BasePath\BasePathMiddleware;
 
 return function (App $app, $customErrorHandler): void {
     $app->addRoutingMiddleware();
-    $app->add(new BasePathMiddleware($app));
+
+    // BasePath only matters when the app runs under a sub-directory.
+    if (!empty($_SERVER['SLIM_BASH_PATH'])) {
+        $app->add(new BasePathMiddleware($app));
+    }
 
     $app->addBodyParsingMiddleware();
     $displayError = filter_var(
         $_SERVER['DISPLAY_ERROR_DETAILS'] ?? false,
         FILTER_VALIDATE_BOOLEAN
     );
-    $errorMiddleware = $app->addErrorMiddleware($displayError, true, true);
+    $errorMiddleware = $app->addErrorMiddleware($displayError, true, $displayError);
     $errorMiddleware->setDefaultErrorHandler($customErrorHandler);
 
     // Create Twig — compiled templates are cached in storage; development
