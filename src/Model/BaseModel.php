@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Model;
 
+use App\Constants\DateFormat;
 use App\Helper\Pagination;
 use App\Interfaces\ModelInterface;
 use InvalidArgumentException;
@@ -44,7 +45,7 @@ abstract class BaseModel implements ModelInterface
 
     protected function now(): string
     {
-        return date('Y-m-d H:i:s');
+        return date(DateFormat::DATETIME);
     }
 
     protected function existsById(
