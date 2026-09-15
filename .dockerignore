@@ -1,0 +1,33 @@
+.git
+.gitignore
+.github
+.env
+.env.testing
+vendor
+docs
+
+# Local runtime state
+storage/cache
+storage/log
+storage/locks
+storage/test_database.sqlite
+public/uploads
+
+# Development and test tooling
+tests
+phpunit.xml
+.phpunit.cache
+.phpunit.result.cache
+phpstan.neon
+phpcs.xml
+.phpcs.cache
+build
+coverage
+
+# IDE / OS noise
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+*.log
+*.swp
