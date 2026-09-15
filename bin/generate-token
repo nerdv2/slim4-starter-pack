@@ -31,4 +31,4 @@ foreach (array_slice($argv, 1) as $argument) {
     $claims[$key] = ctype_digit($value) ? (int) $value : $value;
 }
 
-echo JwtHelper::build_token($claims), PHP_EOL;
+echo JwtHelper::buildToken($claims), PHP_EOL;

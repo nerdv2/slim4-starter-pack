@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Middleware\AuthenticationMiddleware;
 use App\Middleware\AuthorizationMiddleware;
 
+/** @var \Slim\App $app */
+
 // Start Route
 $app->get('/', 'App\Controller\Hello:getStatus')->setName('main');
 $app->get('/status', 'App\Controller\Hello:getStatusAPI')->setName('api.status');

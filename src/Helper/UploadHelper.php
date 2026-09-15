@@ -70,7 +70,6 @@ final class UploadHelper
             } else {
                 return false;
             }
-
         } else {
             $uploadedFile->moveTo($target_directory);
             return 'uploads/' . $filename;
@@ -119,17 +118,14 @@ final class UploadHelper
         try {
             $s3Client = new \Aws\S3\S3Client($options);
 
-            $s3Result = $s3Client->putObject([
+            $s3Client->putObject([
                 'Bucket' => $_SERVER['S3_BUCKET'],
                 'Key' => $target_path,
                 'SourceFile' => $source_file,
             ]);
 
-            if ($s3Result) {
-                $result['status'] = true;
-                $result['url'] = $_SERVER['S3_CDN_DOMAIN'] . "/" . $target_path;
-            }
-
+            $result['status'] = true;
+            $result['url'] = $_SERVER['S3_CDN_DOMAIN'] . "/" . $target_path;
         } catch (\Aws\S3\Exception\S3Exception $e) {
             $result['message'] = $e->getMessage();
         }

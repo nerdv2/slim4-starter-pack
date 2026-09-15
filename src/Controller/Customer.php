@@ -57,11 +57,11 @@ final class Customer extends BaseController
         [$page, $limit] = Pagination::sanitize($query['page'] ?? null, $query['limit'] ?? null);
         $keywords = trim((string) ($query['keywords'] ?? ''));
 
-        $totalData = $this->customerModel->count_get($keywords);
+        $totalData = $this->customerModel->countGet($keywords);
         $data = $this->customerModel->get($keywords, $page, $limit);
 
         return JsonResponse::success($response, $data, JsonResponse::DEFAULT_SUCCESS_MESSAGE, [
-            'total_page' => Pagination::total_pages($totalData, $limit),
+            'total_page' => Pagination::totalPages($totalData, $limit),
             'total_data' => $totalData,
         ]);
     }

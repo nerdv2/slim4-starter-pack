@@ -17,7 +17,7 @@ final class CustomerModel extends BaseModel
         return $query->orderBy('customer.id', 'asc')->get();
     }
 
-    public function count_get(string $keywords = ''): int
+    public function countGet(string $keywords = ''): int
     {
         $query = $this->db()->table('customer');
         $this->applyKeywordSearch($query, 'customer.name', $keywords);

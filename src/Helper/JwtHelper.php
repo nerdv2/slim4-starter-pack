@@ -34,7 +34,7 @@ final class JwtHelper
      * Signing secret from JWT_SECRET. A missing or short secret is a
      * configuration error and must never silently disable validation.
      */
-    public static function secret_key(): string
+    public static function secretKey(): string
     {
         $secret = $_SERVER['JWT_SECRET'] ?? $_ENV['JWT_SECRET'] ?? getenv('JWT_SECRET');
         if (!is_string($secret) || $secret === '') {
@@ -62,7 +62,7 @@ final class JwtHelper
         return $baseUrl;
     }
 
-    public static function token_id(): string
+    public static function tokenId(): string
     {
         $identifier = $_SERVER['JWT_IDENTIFIER'] ?? $_ENV['JWT_IDENTIFIER'] ?? '';
 
@@ -81,15 +81,15 @@ final class JwtHelper
      *
      * @param array<string, mixed> $claims
      */
-    public static function build_token(array $claims, ?string $ttl = null): string
+    public static function buildToken(array $claims, ?string $ttl = null): string
     {
-        $configuration = self::configuration(self::secret_key());
+        $configuration = self::configuration(self::secretKey());
         $now = self::now();
 
         $builder = $configuration->builder()
             ->issuedBy(self::issuer())
             ->permittedFor(self::issuer())
-            ->identifiedBy(self::token_id())
+            ->identifiedBy(self::tokenId())
             ->issuedAt($now)
             ->canOnlyBeUsedAfter($now)
             ->expiresAt($now->modify($ttl ?? self::ttl()));
@@ -115,7 +115,7 @@ final class JwtHelper
             return null;
         }
 
-        $secret = self::secret_key();
+        $secret = self::secretKey();
         $configuration = self::configuration($secret);
 
         try {
@@ -126,7 +126,7 @@ final class JwtHelper
 
             $valid = $configuration->validator()->validate(
                 $parsed,
-                new IdentifiedBy(self::token_id()),
+                new IdentifiedBy(self::tokenId()),
                 new IssuedBy(self::issuer()),
                 new PermittedFor(self::issuer()),
                 new SignedWith(new Sha256(), InMemory::plainText($secret)),
@@ -144,7 +144,7 @@ final class JwtHelper
      * it and map the claims to a user object. Returns null when the header is
      * missing or the token is invalid.
      */
-    public static function request_user(ServerRequestInterface $request): ?\stdClass
+    public static function requestUser(ServerRequestInterface $request): ?\stdClass
     {
         $header = trim($request->getHeaderLine('Authorization'));
         if ($header === '') {
@@ -160,13 +160,13 @@ final class JwtHelper
             return null;
         }
 
-        return self::user_from_claims($claims);
+        return self::userFromClaims($claims);
     }
 
     /**
      * @param array<string, mixed> $claims
      */
-    public static function user_from_claims(array $claims): \stdClass
+    public static function userFromClaims(array $claims): \stdClass
     {
         $user = new \stdClass();
         $user->id = $claims['id'] ?? null;

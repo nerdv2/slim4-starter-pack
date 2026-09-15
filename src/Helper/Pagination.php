@@ -49,7 +49,7 @@ final class Pagination
     /**
      * Total page count without a division-by-zero error.
      */
-    public static function total_pages(int $totalData, int $perPage): int
+    public static function totalPages(int $totalData, int $perPage): int
     {
         return ($totalData <= 0 || $perPage <= 0) ? 0 : (int) (($totalData - 1) / $perPage + 1);
     }

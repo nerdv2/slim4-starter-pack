@@ -19,7 +19,8 @@ $customErrorHandler = function (
     bool $logErrorDetails
 ) use ($app): Response {
     $statusCode = HttpStatus::INTERNAL_SERVER_ERROR;
-    if (is_int($exception->getCode()) &&
+    if (
+        is_int($exception->getCode()) &&
         $exception->getCode() >= 400 &&
         $exception->getCode() <= 599
     ) {

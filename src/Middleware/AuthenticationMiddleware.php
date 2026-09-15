@@ -23,7 +23,7 @@ final class AuthenticationMiddleware implements MiddlewareInterface
     #[\Override]
     public function process(Request $request, RequestHandler $handler): Response
     {
-        $user = JwtHelper::request_user($request);
+        $user = JwtHelper::requestUser($request);
         if ($user === null) {
             return JsonResponse::error(
                 new SlimResponse(),

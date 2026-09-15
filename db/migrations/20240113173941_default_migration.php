@@ -6,7 +6,6 @@ use Phinx\Migration\AbstractMigration;
 
 final class DefaultMigration extends AbstractMigration
 {
-
     public function change(): void
     {
         // create the table
