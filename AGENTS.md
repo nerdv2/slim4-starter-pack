@@ -13,6 +13,8 @@ Rules for working on the **Slim 4 Starter Pack** (`nerdv2/slim4-skeleton`).
 ```bash
 composer install                      # install dependencies
 composer run serve                    # dev server at http://127.0.0.1:8080
+composer run dev                      # dev server + background worker
+composer run worker                   # background worker (default queue)
 composer run migrate                  # run Phinx migrations
 composer run migrate:rollback         # roll back the last migration
 composer run seed                     # run Phinx seeders
@@ -79,6 +81,7 @@ Target directory layout:
 | `src/Exceptions/` | Typed application exceptions (`AppException`, `ValidationException`, `NotFoundException`). |
 | `src/Middleware/` | PSR-15 middleware (authentication, authorization) once P4 lands. |
 | `src/Model/` | Data access; extend `BaseModel` once P2 lands. |
+| `src/Jobs/` | Background job handlers registered in the queue `jobRegistry`. |
 | `src/Helper/` | Stateless utilities (`JsonResponse`, `Pagination`, `JwtHelper`, ...). |
 | `src/Constants/` | Named values (`HttpStatus`, `DateFormat`, `OpenApiTags`). |
 | `src/Interfaces/` | Shared contracts (`ModelInterface`). |
@@ -125,6 +128,13 @@ public function list(Request $request, Response $response): Response
   resolve them from the container (for example `$container->get('customerService')`).
 - Services throw typed exceptions (`ValidationException`, `NotFoundException`); controllers catch
   `AppException` and return the envelope through `BaseController::errorResponse()`.
+
+### Jobs
+
+- Handlers live in `src/Jobs/` and implement `Oeltima\SimpleQueue\Contract\JobHandlerInterface`.
+- Register every job type in the `jobRegistry` in `src/App/Services.php` and dispatch through the
+  `jobDispatcher` service.
+- Keep payloads small and JSON-serializable; return a result value or throw to trigger retries.
 
 ### Models
 
@@ -230,6 +240,7 @@ docs(agents): add contributor and agent guidelines
 - [ ] `composer run check` passes (composer validate + PHPStan + PHPCS).
 - [ ] `composer run test` passes; tests run on SQLite, never against a real database.
 - [ ] New services and models are registered in `src/App/Services.php`.
+- [ ] New background job types are registered in the `jobRegistry`.
 - [ ] `php -l` passes for every changed PHP file.
 - [ ] No new dependencies, no new frameworks, no hand-assembled response envelopes.
 - [ ] Routes are registered in `src/App/Routes.php` and named.

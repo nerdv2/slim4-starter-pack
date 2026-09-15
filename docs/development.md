@@ -64,6 +64,8 @@ Then `composer run migrate` to create the example `customer` table.
 | `CORS_ALLOW_CREDENTIALS` | Reflects credentials for allowed origins. |
 | `CORS_ALLOWED_HEADERS`, `CORS_ALLOWED_METHODS`, `CORS_MAX_AGE` | CORS response values. |
 | `REDIS_SERVER_*` | Optional Redis connection used by `CacheRedis`. |
+| `QUEUE_DRIVER`, `QUEUE_REDIS_PREFIX` | Background queue driver (`auto`/`database`/`redis`) and Redis key prefix. |
+| `JOB_*` | Worker tuning: poll timeout, retries, recycling and recovery; see [Background Jobs](background-jobs.md). |
 | `S3_ENDPOINT`, `S3_REGION`, `S3_KEY`, `S3_SECRET`, `S3_BUCKET`, `S3_CDN_DOMAIN` | Object storage for `UploadHelper`. |
 
 Environment variables are loaded by `src/App/DotEnv.php`; the parsed values are cached and
@@ -74,6 +76,8 @@ refreshed when `.env` changes.
 | Command | Purpose |
 |---------|---------|
 | `composer run serve` | Development server on `http://127.0.0.1:8080`. |
+| `composer run dev` | Development server + background worker with prefixed output. |
+| `composer run worker` | Background worker for the default queue. |
 | `composer run migrate` | Apply Phinx migrations. |
 | `composer run migrate:rollback` | Roll back the last migration. |
 | `composer run seed` | Run Phinx seeders. |
@@ -84,6 +88,13 @@ refreshed when `.env` changes.
 | `composer run check` | `composer validate` + PHPStan + PHPCS. |
 
 Swagger UI is available at `http://127.0.0.1:8080/swaggerui`.
+
+## Background Jobs
+
+Dispatch work through the `jobDispatcher` service; handlers live in `src/Jobs/` and are registered
+in the `jobRegistry` in `src/App/Services.php`. `composer run dev` starts the webserver together
+with the worker, and `composer run worker` runs the worker alone. See
+[Background Jobs](background-jobs.md) for configuration, the job status endpoints and testing.
 
 ## Adding an Endpoint
 

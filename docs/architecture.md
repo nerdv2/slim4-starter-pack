@@ -15,6 +15,7 @@ How the Slim 4 Starter Pack is structured and how a request flows through it.
 | Authentication | JWT (`lcobucci/jwt` 5) |
 | API docs | OpenAPI via `zircote/swagger-php` 6 + bundled Swagger UI |
 | Migrations | Phinx |
+| Background jobs | `oeltimacreation/php-simplequeue` (database driver) |
 | Logging | Monolog (`storage/log/error.log`) |
 | Error monitoring | Sentry (optional, `SENTRY_DSN`) |
 | Observability | Health endpoints, `X-Request-ID` request tracing |
@@ -44,10 +45,13 @@ src/
 ├── Exceptions/          Typed application exceptions
 ├── Helper/              Stateless utilities (JsonResponse, Pagination, JwtHelper, ...)
 ├── Interfaces/          ModelInterface
+├── Jobs/                Background job handlers (ExampleJob)
 ├── Middleware/          AuthenticationMiddleware, AuthorizationMiddleware
 ├── Model/               Data access (BaseModel, CustomerModel, HelloModel)
 ├── Service/             Business rules (CustomerService)
 └── View/                Twig templates (Swagger UI)
+bin/background-worker    Queue worker
+bin/dev-server           Webserver + worker development runner
 bin/generate-token       Development token generator
 db/migrations/           Phinx migrations
 db/seeds/                Phinx seeders
@@ -73,8 +77,8 @@ storage/log/             Application error log
 8. `Cors.php` — registered when `CORS_ENABLED` is true (default: development/testing or
    `localhost`).
 9. `Database.php` — registers the `db` and `db_read` SimpleQuery connections.
-10. `Services.php` — registers models and services (for example `customerModel`,
-    `customerService`) in the container.
+10. `Services.php` — registers models, services and the queue infrastructure (`jobStorage`,
+    `queueManager`, `jobRegistry`, `jobDispatcher`) in the container.
 11. `Routes.php` — registers every route.
 12. `NotFound.php` — catch-all route that throws `HttpNotFoundException`.
 
@@ -269,6 +273,13 @@ Helpers are called statically; they never touch the container.
 
 `src/View/` contains the Twig template for the bundled Swagger UI. Render it through
 `TwigResponse::render()`.
+
+### Background Jobs
+
+Work is dispatched to the durable `background_job` table and executed by `bin/background-worker`
+(`composer run worker`). Job handlers live in `src/Jobs/` and are registered in the `jobRegistry`
+in `src/App/Services.php`; `composer run dev` runs the webserver and the worker together. See
+[Background Jobs](background-jobs.md).
 
 ## Configuration and Caching
 

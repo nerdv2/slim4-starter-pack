@@ -8,6 +8,7 @@ Developer documentation for the Slim 4 Starter Pack.
 | [API Conventions](api-conventions.md) | Response envelope, authentication, pagination, errors and CORS. |
 | [Database](database.md) | Connections, `BaseModel`, query patterns and migrations. |
 | [Development](development.md) | Local setup, environment variables, commands and adding an endpoint. |
+| [Background Jobs](background-jobs.md) | Queue architecture, job handlers, the worker and the dev runner. |
 
 Related files:
 
