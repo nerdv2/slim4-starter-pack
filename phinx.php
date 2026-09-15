@@ -24,6 +24,29 @@ $env = static function (string $key, string $default = '') use ($fileEnv): strin
     return (string) $value;
 };
 
+// Mirror the application driver support: sqlite, mysql or mariadb.
+$driver = strtolower($env('DB_DRIVER', 'mysql'));
+
+$connection = match ($driver) {
+    'sqlite' => [
+        'adapter' => 'sqlite',
+        'name' => $env('DB_NAME'),
+        // Phinx appends ".sqlite3" by default; the application uses DB_NAME as-is.
+        'suffix' => '',
+    ],
+    'mysql', 'mariadb' => [
+        'adapter' => 'mysql',
+        'host' => $env('DB_HOST', '127.0.0.1'),
+        'name' => $env('DB_NAME'),
+        'user' => $env('DB_USER'),
+        'pass' => $env('DB_PASS'),
+        'port' => $env('DB_PORT', '3306'),
+        'charset' => 'utf8mb4',
+        'collation' => 'utf8mb4_unicode_ci',
+    ],
+    default => throw new InvalidArgumentException("Unsupported database driver: {$driver}"),
+};
+
 return [
     'paths' => [
         'migrations' => __DIR__ . '/db/migrations',
@@ -32,16 +55,7 @@ return [
     'environments' => [
         'default_migration_table' => 'phinxlog',
         'default_environment' => 'development',
-        'development' => [
-            'adapter' => 'mysql',
-            'host' => $env('DB_HOST', '127.0.0.1'),
-            'name' => $env('DB_NAME'),
-            'user' => $env('DB_USER'),
-            'pass' => $env('DB_PASS'),
-            'port' => $env('DB_PORT', '3306'),
-            'charset' => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
-        ],
+        'development' => $connection,
     ],
     'version_order' => 'creation',
 ];
