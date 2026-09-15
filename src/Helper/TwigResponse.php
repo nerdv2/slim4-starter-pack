@@ -4,26 +4,39 @@ declare(strict_types=1);
 
 namespace App\Helper;
 
-use Slim\Views\Twig;
-use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Views\Twig;
 
 final class TwigResponse
 {
-    public static function render(Request $request, Response $response, string $template, array $data, int $status = 200)
-    {
+    /**
+     * Render a Twig template as a PSR-7 response.
+     *
+     * `baseurl` comes from APP_BASE_URL (scheme + host + optional base path)
+     * and falls back to the current request authority; `uri` is the request
+     * target (path and query string).
+     */
+    public static function render(
+        Request $request,
+        Response $response,
+        string $template,
+        array $data,
+        int $status = 200
+    ): Response {
         $view = Twig::fromRequest($request);
 
-        $http = 'http' . ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 's' : '') . '://';
-        $newurl = str_replace("index.php", "", $_SERVER['SCRIPT_NAME']);
-        $data['baseurl']    = "$http" . $_SERVER['SERVER_NAME'] . "" . $newurl;
-
-        if(in_array($_SERVER['REMOTE_ADDR'], array('127.0.0.1', '::1', 'localhost'))){
-            $data['baseurl']    = "$http" . $_SERVER['SERVER_NAME'] . ":" . $_SERVER['SERVER_PORT'] . "" . $newurl;
+        $baseUrl = rtrim((string) ($_SERVER['APP_BASE_URL'] ?? ''), '/');
+        if ($baseUrl === '') {
+            $uri = $request->getUri();
+            $baseUrl = $uri->getScheme() . '://' . $uri->getAuthority();
         }
 
-        $data['uri'] = $_SERVER['REQUEST_URI'];
+        $data['baseurl'] = $baseUrl . '/';
+        $data['uri'] = $request->getRequestTarget();
 
-        return $view->render($response, $template, $data);
+        return $view
+            ->render($response, $template, $data)
+            ->withStatus($status);
     }
 }
