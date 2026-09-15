@@ -57,6 +57,9 @@
         ],
         "seed": [
             "./vendor/bin/phinx seed:run"
+        ],
+        "token": [
+            "php bin/generate-token"
         ]
     }
 }

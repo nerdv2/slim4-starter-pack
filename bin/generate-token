@@ -1,0 +1,34 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../src/App/DotEnv.php';
+
+use App\Helper\JwtHelper;
+
+$claims = [
+    'id' => 1,
+    'type' => 'admin',
+];
+
+foreach (array_slice($argv, 1) as $argument) {
+    if (!str_contains($argument, '=')) {
+        fwrite(STDERR, "Usage: php bin/generate-token [key=value ...]\n");
+        exit(1);
+    }
+
+    [$key, $value] = explode('=', $argument, 2);
+    $key = trim($key);
+    $value = trim($value);
+
+    if ($key === '') {
+        fwrite(STDERR, "Claim names must not be empty.\n");
+        exit(1);
+    }
+
+    $claims[$key] = ctype_digit($value) ? (int) $value : $value;
+}
+
+echo JwtHelper::build_token($claims), PHP_EOL;
