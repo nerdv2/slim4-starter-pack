@@ -16,6 +16,8 @@ Rules for working on the **Slim 4 Starter Pack** (`nerdv2/slim4-skeleton`).
 composer install                      # install dependencies
 composer run serve                    # dev server at http://127.0.0.1:8080
 composer run migrate                  # run Phinx migrations
+composer run migrate:rollback         # roll back the last migration
+composer run seed                     # run Phinx seeders
 composer run generate-openapi-docs    # regenerate public/openapi.yaml + .json
 php -l path/to/file.php               # syntax check
 ```
@@ -181,7 +183,7 @@ docs(agents): add contributor and agent guidelines
 | Phase | Scope | State |
 |-------|-------|-------|
 | P0 | Conventions locked in this file | done |
-| P1 | Configuration & environment | pending |
+| P1 | Configuration & environment | done |
 | P2 | SimpleQuery + `BaseModel` + `Pagination` | pending |
 | P3 | Response envelope, error handling, CORS | pending |
 | P4 | `JwtHelper`, auth middleware, `BaseController` | pending |
