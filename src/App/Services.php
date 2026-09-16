@@ -3,9 +3,15 @@
 declare(strict_types=1);
 
 use App\Helper\CacheRedis;
-use App\Jobs\ExampleJob;
+use App\Helper\UploadHelper;
+use App\Jobs\CustomerExportJob;
+use App\Jobs\CustomerImportJob;
 use App\Model\CustomerModel;
+use App\Model\RefreshTokenModel;
+use App\Model\UserModel;
+use App\Service\AuthService;
 use App\Service\CustomerService;
+use App\Service\CustomerTransferService;
 use Oeltima\SimpleQueue\JobDispatcher;
 use Oeltima\SimpleQueue\JobRegistry;
 use Oeltima\SimpleQueue\QueueManager;
@@ -17,6 +23,34 @@ use Pimple\Psr11\Container as Psr11Container;
 /** @var Container $container */
 $container['cacheRedis'] = static function (): CacheRedis {
     return new CacheRedis();
+};
+
+$container['uploadHelper'] = static function (): UploadHelper {
+    // Public filesystem uploads (customer avatars); S3 when DEFAULT_UPLOAD_TARGET=s3.
+    return new UploadHelper();
+};
+
+$container['userModel'] = static function (Container $container): UserModel {
+    /** @var Connection $db */
+    $db = $container['db'];
+
+    return new UserModel($db);
+};
+
+$container['refreshTokenModel'] = static function (Container $container): RefreshTokenModel {
+    /** @var Connection $db */
+    $db = $container['db'];
+
+    return new RefreshTokenModel($db);
+};
+
+$container['authService'] = static function (Container $container): AuthService {
+    /** @var UserModel $userModel */
+    $userModel = $container['userModel'];
+    /** @var RefreshTokenModel $refreshTokenModel */
+    $refreshTokenModel = $container['refreshTokenModel'];
+
+    return new AuthService($userModel, $refreshTokenModel);
 };
 
 $container['customerModel'] = static function (Container $container): CustomerModel {
@@ -31,8 +65,10 @@ $container['customerService'] = static function (Container $container): Customer
     $model = $container['customerModel'];
     /** @var CacheRedis $cache */
     $cache = $container['cacheRedis'];
+    /** @var UploadHelper $uploadHelper */
+    $uploadHelper = $container['uploadHelper'];
 
-    return new CustomerService($model, $cache);
+    return new CustomerService($model, $cache, $uploadHelper);
 };
 
 $container['jobStorage'] = static function (Container $container): PdoJobStorage {
@@ -66,17 +102,37 @@ $container['queueManager'] = static function (Container $container): QueueManage
     );
 };
 
-$container[ExampleJob::class] = static function (): ExampleJob {
-    return new ExampleJob();
+$container['jobDispatcher'] = static function (Container $container): JobDispatcher {
+    return new JobDispatcher($container['jobStorage'], $container['queueManager']);
+};
+
+$container['customerTransferService'] = static function (Container $container): CustomerTransferService {
+    /** @var CustomerModel $model */
+    $model = $container['customerModel'];
+    /** @var JobDispatcher $jobDispatcher */
+    $jobDispatcher = $container['jobDispatcher'];
+
+    return new CustomerTransferService($model, $jobDispatcher);
+};
+
+$container[CustomerExportJob::class] = static function (Container $container): CustomerExportJob {
+    /** @var CustomerModel $model */
+    $model = $container['customerModel'];
+
+    return new CustomerExportJob($model);
+};
+
+$container[CustomerImportJob::class] = static function (Container $container): CustomerImportJob {
+    /** @var CustomerModel $model */
+    $model = $container['customerModel'];
+
+    return new CustomerImportJob($model);
 };
 
 $container['jobRegistry'] = static function (Container $container): JobRegistry {
     $registry = new JobRegistry(new Psr11Container($container));
-    $registry->register('example.hello', ExampleJob::class);
+    $registry->register('customer.export', CustomerExportJob::class);
+    $registry->register('customer.import', CustomerImportJob::class);
 
     return $registry;
-};
-
-$container['jobDispatcher'] = static function (Container $container): JobDispatcher {
-    return new JobDispatcher($container['jobStorage'], $container['queueManager']);
 };

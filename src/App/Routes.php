@@ -16,8 +16,9 @@ return static function (App $app): void {
     $manifest = [
         'routes/core.php',
         'routes/health.php',
+        'routes/auth.php',
         'routes/customer.php',
-        'routes/background_jobs.php',
+        'routes/jobs.php',
     ];
 
     foreach ($manifest as $file) {

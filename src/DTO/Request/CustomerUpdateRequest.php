@@ -6,23 +6,25 @@ namespace App\DTO\Request;
 
 use Psr\Http\Message\ServerRequestInterface;
 
+/**
+ * Customer update payload. The route supplies the id; the field payload reuses
+ * CustomerCreateRequest so create and update validate identically.
+ */
 final readonly class CustomerUpdateRequest
 {
     public function __construct(
         public int $id,
-        public string $name
+        public CustomerCreateRequest $payload
     ) {
     }
 
-    public static function fromRequest(ServerRequestInterface $request): self
+    public static function fromRequest(ServerRequestInterface $request, int|string|null $id = null): self
     {
-        $body = $request->getParsedBody();
-        $body = is_array($body) ? $body : [];
-        $id = filter_var($body['id'] ?? null, FILTER_VALIDATE_INT);
+        $validatedId = filter_var($id, FILTER_VALIDATE_INT);
 
         return new self(
-            id: is_int($id) && $id > 0 ? $id : 0,
-            name: trim((string) ($body['name'] ?? ''))
+            id: is_int($validatedId) && $validatedId > 0 ? $validatedId : 0,
+            payload: CustomerCreateRequest::fromRequest($request)
         );
     }
 
@@ -31,13 +33,10 @@ final readonly class CustomerUpdateRequest
      */
     public function validate(): array
     {
-        $errors = [];
+        $errors = $this->payload->validate();
 
         if ($this->id <= 0) {
-            $errors['id'] = 'A positive id is required.';
-        }
-        if ($this->name === '') {
-            $errors['name'] = 'Name is required.';
+            $errors = ['id' => 'A positive id is required.'] + $errors;
         }
 
         return $errors;

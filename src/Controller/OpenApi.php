@@ -7,9 +7,9 @@ namespace App\Controller;
 use OpenApi\Attributes as OA;
 
 #[OA\Info(
-    title: "Slim 4 Starter Pack",
+    title: "Customer DB API",
     version: "v1.0.0",
-    description: "Backend API for the Slim 4 Starter Pack, please use responsibly.",
+    description: "Customer database API: authentication with access and refresh tokens, customer management, avatars, CSV import/export and background jobs.",
     contact: new OA\Contact(email: "admin@example.com")
 )]
 #[OA\SecurityScheme(

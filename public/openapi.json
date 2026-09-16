@@ -1,30 +1,185 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "Slim 4 Starter Pack",
-        "description": "Backend API for the Slim 4 Starter Pack, please use responsibly.",
+        "title": "Customer DB API",
+        "description": "Customer database API: authentication with access and refresh tokens, customer management, avatars, CSV import/export and background jobs.",
         "contact": {
             "email": "admin@example.com"
         },
         "version": "v1.0.0"
     },
     "paths": {
-        "/admin/background-jobs/example": {
+        "/auth/register": {
             "post": {
                 "tags": [
-                    "Diagnostic"
+                    "Authentication"
                 ],
-                "summary": "Dispatch example job",
-                "description": "Dispatch the example background job. Requires an admin token.",
-                "operationId": "4d4985e31c174e3f0a6960e423e0b5c8",
+                "summary": "Register",
+                "description": "Create a staff account and start a session. The first administrator is created by the seeder.",
+                "operationId": "2951b1c064a4f9057f7298ac6d8792a1",
                 "requestBody": {
-                    "required": false,
+                    "required": true,
                     "content": {
-                        "application/x-www-form-urlencoded": {
+                        "application/json": {
                             "schema": {
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "password",
+                                    "password_confirmation"
+                                ],
                                 "properties": {
-                                    "message": {
-                                        "description": "Message echoed by the job",
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Jane Doe"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Account created"
+                    },
+                    "400": {
+                        "description": "Validation failed"
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Login",
+                "description": "Exchange email and password for an access token and an HttpOnly refresh cookie.",
+                "operationId": "d16e6f2130a19a6802c1344ae5bcd3da",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Signed in"
+                    },
+                    "400": {
+                        "description": "Validation failed"
+                    },
+                    "401": {
+                        "description": "Invalid credentials"
+                    }
+                }
+            }
+        },
+        "/auth/refresh": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Refresh session",
+                "description": "Rotate the refresh cookie and issue a new access token. Reusing a rotated token revokes the session family.",
+                "operationId": "920d0a9fa5c09f34b36431d472c48963",
+                "responses": {
+                    "200": {
+                        "description": "Session refreshed"
+                    },
+                    "401": {
+                        "description": "Missing, expired or reused refresh token"
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Logout",
+                "description": "Revoke the current refresh-token family and clear the cookie.",
+                "operationId": "2346429d6f3af13f8d0d7ef5e9cf7c42",
+                "responses": {
+                    "200": {
+                        "description": "Signed out"
+                    }
+                }
+            }
+        },
+        "/auth/me": {
+            "get": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Current user",
+                "description": "Current account profile.",
+                "operationId": "ef26d2cc6c09ef674a2c765586a91bc9",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "401": {
+                        "description": "Missing or invalid token"
+                    }
+                },
+                "security": [
+                    {
+                        "auth_token": []
+                    }
+                ]
+            }
+        },
+        "/auth/profile": {
+            "put": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Update profile",
+                "description": "Update the display name of the current account.",
+                "operationId": "aead5d28592d9ae3372f85226ac45447",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
                                         "type": "string"
                                     }
                                 },
@@ -35,7 +190,191 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Job queued"
+                        "description": "Profile updated"
+                    },
+                    "400": {
+                        "description": "Validation failed"
+                    },
+                    "401": {
+                        "description": "Missing or invalid token"
+                    }
+                },
+                "security": [
+                    {
+                        "auth_token": []
+                    }
+                ]
+            }
+        },
+        "/auth/change-password": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Change password",
+                "description": "Change the password and revoke every other active session.",
+                "operationId": "eb29bfba9b5d3365299eaf0b504db90e",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "current_password",
+                                    "new_password",
+                                    "new_password_confirmation"
+                                ],
+                                "properties": {
+                                    "current_password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "new_password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "new_password_confirmation": {
+                                        "type": "string",
+                                        "format": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password changed"
+                    },
+                    "400": {
+                        "description": "Validation failed"
+                    },
+                    "401": {
+                        "description": "Missing or invalid token"
+                    }
+                },
+                "security": [
+                    {
+                        "auth_token": []
+                    }
+                ]
+            }
+        },
+        "/customer": {
+            "get": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "List customers",
+                "description": "Paginated customer list with keyword search and status filter.",
+                "operationId": "39c5716604f7dccc3f995c28240dda86",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 20
+                        }
+                    },
+                    {
+                        "name": "keywords",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "lead, prospect, active or inactive",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "400": {
+                        "description": "Validation failed"
+                    },
+                    "401": {
+                        "description": "Missing or invalid token"
+                    }
+                },
+                "security": [
+                    {
+                        "auth_token": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "Create customer",
+                "description": "Create a customer. Requires an admin token.",
+                "operationId": "a882d2d5f5e63ea16a169132edb19542",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "phone": {
+                                        "type": "string"
+                                    },
+                                    "company": {
+                                        "type": "string"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "lead",
+                                            "prospect",
+                                            "active",
+                                            "inactive"
+                                        ]
+                                    },
+                                    "address": {
+                                        "type": "string"
+                                    },
+                                    "notes": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Customer created"
+                    },
+                    "400": {
+                        "description": "Validation failed"
                     },
                     "401": {
                         "description": "Missing or invalid token"
@@ -51,14 +390,37 @@
                 ]
             }
         },
-        "/admin/background-jobs/{id}": {
+        "/customer/stats": {
             "get": {
                 "tags": [
-                    "Diagnostic"
+                    "Customer"
                 ],
-                "summary": "Background job status",
-                "description": "Retrieve a background job status. Requires an admin token.",
-                "operationId": "0a586f4c956852d1a201d7e56de4e52f",
+                "summary": "Customer statistics",
+                "description": "Customer counts per status, total and creations in the last seven days.",
+                "operationId": "29eec06d801b4095ee38e6bd727c918c",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "401": {
+                        "description": "Missing or invalid token"
+                    }
+                },
+                "security": [
+                    {
+                        "auth_token": []
+                    }
+                ]
+            }
+        },
+        "/customer/{id}": {
+            "get": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "Customer detail",
+                "description": "Retrieve a single customer.",
+                "operationId": "f9e92274ac283706b84ba139e36580de",
                 "parameters": [
                     {
                         "name": "id",
@@ -77,7 +439,7 @@
                         "description": "Missing or invalid token"
                     },
                     "404": {
-                        "description": "Job not found"
+                        "description": "Customer not found"
                     }
                 },
                 "security": [
@@ -85,124 +447,59 @@
                         "auth_token": []
                     }
                 ]
-            }
-        },
-        "/customer": {
-            "get": {
-                "tags": [
-                    "Customer"
-                ],
-                "summary": "List customers",
-                "description": "Retrieve a paginated customer list with optional keyword search.",
-                "operationId": "40b7f7503eba97a0c6399d9ef21c7e12",
-                "parameters": [
-                    {
-                        "name": "page",
-                        "in": "query",
-                        "description": "Page number (1-based)",
-                        "schema": {
-                            "type": "integer",
-                            "default": 1
-                        }
-                    },
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "description": "Rows per page (max 100)",
-                        "schema": {
-                            "type": "integer",
-                            "default": 20
-                        }
-                    },
-                    {
-                        "name": "keywords",
-                        "in": "query",
-                        "description": "Case-insensitive name search",
-                        "schema": {
-                            "type": "string",
-                            "default": ""
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Success"
-                    }
-                }
-            }
-        },
-        "/customer/add": {
-            "post": {
-                "tags": [
-                    "Customer"
-                ],
-                "summary": "Create customer",
-                "description": "Create a customer. Requires an admin token.",
-                "operationId": "867eea20c068a227fbe1205518f2e61d",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "required": [
-                                    "name"
-                                ],
-                                "properties": {
-                                    "name": {
-                                        "description": "Customer name",
-                                        "type": "string"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Success"
-                    },
-                    "400": {
-                        "description": "Validation failed"
-                    },
-                    "401": {
-                        "description": "Missing or invalid token"
-                    },
-                    "403": {
-                        "description": "Access denied"
-                    }
-                },
-                "security": [
-                    {
-                        "auth_token": []
-                    }
-                ]
-            }
-        },
-        "/customer/update": {
-            "post": {
+            },
+            "put": {
                 "tags": [
                     "Customer"
                 ],
                 "summary": "Update customer",
-                "description": "Rename a customer. Requires an admin token.",
-                "operationId": "9f19530c46fd84f8d843e55f604a23d8",
+                "description": "Update a customer. Requires an admin token.",
+                "operationId": "29e4c37f8669b25de09c1f37cbbbae62",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/x-www-form-urlencoded": {
+                        "application/json": {
                             "schema": {
                                 "required": [
-                                    "id",
                                     "name"
                                 ],
                                 "properties": {
-                                    "id": {
-                                        "description": "Customer id",
-                                        "type": "integer"
-                                    },
                                     "name": {
-                                        "description": "Customer name",
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "phone": {
+                                        "type": "string"
+                                    },
+                                    "company": {
+                                        "type": "string"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "lead",
+                                            "prospect",
+                                            "active",
+                                            "inactive"
+                                        ]
+                                    },
+                                    "address": {
+                                        "type": "string"
+                                    },
+                                    "notes": {
                                         "type": "string"
                                     }
                                 },
@@ -213,7 +510,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Success"
+                        "description": "Customer updated"
                     },
                     "400": {
                         "description": "Validation failed"
@@ -233,28 +530,75 @@
                         "auth_token": []
                     }
                 ]
-            }
-        },
-        "/customer/delete": {
+            },
             "delete": {
                 "tags": [
                     "Customer"
                 ],
                 "summary": "Delete customer",
-                "description": "Delete a customer. Requires an admin token.",
-                "operationId": "f7369b083d75d0520aa3f8ae9becb0ed",
+                "description": "Soft-delete a customer and its avatar. Requires an admin token.",
+                "operationId": "dd5c98734b71e95c10efe43fe7e0b2f6",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Customer deleted"
+                    },
+                    "401": {
+                        "description": "Missing or invalid token"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    },
+                    "404": {
+                        "description": "Customer not found"
+                    }
+                },
+                "security": [
+                    {
+                        "auth_token": []
+                    }
+                ]
+            }
+        },
+        "/customer/{id}/avatar": {
+            "post": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "Upload avatar",
+                "description": "Upload or replace the customer avatar (JPEG, PNG or WebP). Requires an admin token.",
+                "operationId": "fe334c23f74562ac8f7bbf7ec975f710",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/x-www-form-urlencoded": {
+                        "multipart/form-data": {
                             "schema": {
                                 "required": [
-                                    "id"
+                                    "avatar"
                                 ],
                                 "properties": {
-                                    "id": {
-                                        "description": "Customer id",
-                                        "type": "integer"
+                                    "avatar": {
+                                        "type": "string",
+                                        "format": "binary"
                                     }
                                 },
                                 "type": "object"
@@ -264,7 +608,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Success"
+                        "description": "Avatar stored"
                     },
                     "400": {
                         "description": "Validation failed"
@@ -277,6 +621,181 @@
                     },
                     "404": {
                         "description": "Customer not found"
+                    }
+                },
+                "security": [
+                    {
+                        "auth_token": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "Remove avatar",
+                "description": "Remove the customer avatar. Requires an admin token.",
+                "operationId": "3f52c6ef7e7adfd11fa5de105d00cff3",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Avatar removed"
+                    },
+                    "401": {
+                        "description": "Missing or invalid token"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    },
+                    "404": {
+                        "description": "Customer not found"
+                    }
+                },
+                "security": [
+                    {
+                        "auth_token": []
+                    }
+                ]
+            }
+        },
+        "/customer/export": {
+            "post": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "Queue customer export",
+                "description": "Queue a CSV export of the filtered customer list and return the background job id.",
+                "operationId": "3b4b716f4b49221bc1d54c93074e007a",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "keywords": {
+                                        "type": "string"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "lead",
+                                            "prospect",
+                                            "active",
+                                            "inactive"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Export queued"
+                    },
+                    "400": {
+                        "description": "Validation failed"
+                    },
+                    "401": {
+                        "description": "Missing or invalid token"
+                    }
+                },
+                "security": [
+                    {
+                        "auth_token": []
+                    }
+                ]
+            }
+        },
+        "/customer/import": {
+            "post": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "Queue customer import",
+                "description": "Upload a customer CSV and queue the import job. Requires an admin token.",
+                "operationId": "cb07ddaa1fe37fe4917f57a04efaaf71",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "file"
+                                ],
+                                "properties": {
+                                    "file": {
+                                        "description": "CSV with a name column; email, phone, company, status, address and notes are optional",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Import queued"
+                    },
+                    "400": {
+                        "description": "Validation failed"
+                    },
+                    "401": {
+                        "description": "Missing or invalid token"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    }
+                },
+                "security": [
+                    {
+                        "auth_token": []
+                    }
+                ]
+            }
+        },
+        "/customer/export/{id}/download": {
+            "get": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "Download customer export",
+                "description": "Download a completed export as a CSV attachment.",
+                "operationId": "7d86d3d551632918ce603e0b3901a2a1",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CSV file"
+                    },
+                    "401": {
+                        "description": "Missing or invalid token"
+                    },
+                    "404": {
+                        "description": "Export not found"
+                    },
+                    "409": {
+                        "description": "Export is not completed yet"
                     }
                 },
                 "security": [
@@ -389,6 +908,42 @@
                     }
                 }
             }
+        },
+        "/jobs/{id}": {
+            "get": {
+                "tags": [
+                    "Jobs"
+                ],
+                "summary": "Job status",
+                "description": "Status, progress and result of a background job.",
+                "operationId": "4978b6e592618931fe959d86a1a55d9c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "401": {
+                        "description": "Missing or invalid token"
+                    },
+                    "404": {
+                        "description": "Job not found"
+                    }
+                },
+                "security": [
+                    {
+                        "auth_token": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -409,16 +964,24 @@
     },
     "tags": [
         {
-            "name": "Diagnostic",
-            "description": "Diagnostic"
+            "name": "Authentication",
+            "description": "Authentication"
         },
         {
             "name": "Customer",
             "description": "Customer"
         },
         {
+            "name": "Diagnostic",
+            "description": "Diagnostic"
+        },
+        {
             "name": "Default",
             "description": "Default"
+        },
+        {
+            "name": "Jobs",
+            "description": "Jobs"
         }
     ]
 }

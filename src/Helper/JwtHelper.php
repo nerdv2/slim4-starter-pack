@@ -24,6 +24,7 @@ final class JwtHelper
 {
     public const string DEFAULT_TOKEN_ID = '4f1g23a12aa';
     public const string DEFAULT_TTL = '+7 day';
+    public const string DEFAULT_ACCESS_TTL = '+15 minute';
 
     /**
      * Minimum HMAC-SHA256 key length in bytes.
@@ -74,6 +75,17 @@ final class JwtHelper
         $ttl = $_SERVER['JWT_TTL'] ?? $_ENV['JWT_TTL'] ?? '';
 
         return is_string($ttl) && $ttl !== '' ? $ttl : self::DEFAULT_TTL;
+    }
+
+    /**
+     * Access token lifetime. Short-lived by design: the refresh token endpoint
+     * (opaque token, rotated in the database) restores the session.
+     */
+    public static function accessTtl(): string
+    {
+        $ttl = $_SERVER['JWT_ACCESS_TTL'] ?? $_ENV['JWT_ACCESS_TTL'] ?? '';
+
+        return is_string($ttl) && $ttl !== '' ? $ttl : self::DEFAULT_ACCESS_TTL;
     }
 
     /**

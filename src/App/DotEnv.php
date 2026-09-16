@@ -8,6 +8,22 @@ $baseDir = __DIR__ . '/../../';
 $envFile = $baseDir . '.env';
 $cacheFile = $baseDir . 'storage/cache/env.cache.json';
 
+/**
+ * Populate process env without clobbering values that are already present.
+ *
+ * Symfony DotEnv re-applies every name loaded earlier in the process (tracked
+ * through SYMFONY_DOTENV_VARS) unless the marker is cleared, which would
+ * override explicit environment values (phpunit.xml, shell overrides) on the
+ * next bootstrap. Clearing it restores the documented precedence: the process
+ * environment wins over .env.
+ *
+ * @param array<string, string|null> $values
+ */
+$populate = static function (Dotenv $dotenv, array $values): void {
+    unset($_ENV['SYMFONY_DOTENV_VARS'], $_SERVER['SYMFONY_DOTENV_VARS']);
+    $dotenv->populate($values);
+};
+
 // Parsing .env on every request costs ~120 us. The parsed values are cached
 // next to the log/cache files and reused while .env is unchanged (mtime + size).
 // JSON is used instead of a PHP include so the cache stays correct when OPcache
@@ -24,14 +40,16 @@ if (is_readable($envFile)) {
             && ($cached['size'] ?? null) === filesize($envFile)
             && is_array($cached['values'] ?? null)
         ) {
-            $dotenv->populate($cached['values']);
+            /** @var array<string, string|null> $cachedValues */
+            $cachedValues = $cached['values'];
+            $populate($dotenv, $cachedValues);
             $loaded = true;
         }
     }
 
     if (!$loaded) {
         $values = $dotenv->parse((string) file_get_contents($envFile), $envFile);
-        $dotenv->populate($values);
+        $populate($dotenv, $values);
 
         $cacheDir = dirname($cacheFile);
         if (!is_dir($cacheDir)) {

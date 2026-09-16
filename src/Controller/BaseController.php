@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Constants\HttpStatus;
 use App\Exceptions\AppException;
 use App\Exceptions\ValidationException;
 use App\Helper\JsonResponse;
@@ -53,5 +54,15 @@ abstract class BaseController
         $data = $exception instanceof ValidationException ? $exception->errors() : [];
 
         return JsonResponse::error($response, $exception->getMessage(), $data, [], $exception->httpStatus());
+    }
+
+    /**
+     * Standard 400 response for DTO validation failures.
+     *
+     * @param array<string, string> $errors
+     */
+    protected function validationError(Response $response, array $errors): Response
+    {
+        return JsonResponse::error($response, 'Validation failed.', $errors, [], HttpStatus::BAD_REQUEST);
     }
 }

@@ -86,6 +86,27 @@ final class UploadHelper
      */
     public function moveUploadedFile(UploadedFileInterface $uploadedFile, string $path = ''): string|false
     {
+        $relative = $this->store($uploadedFile, $path);
+        if ($relative === false) {
+            return false;
+        }
+
+        if ($this->uploadTarget() === 's3') {
+            return $relative;
+        }
+
+        return 'uploads/' . $relative;
+    }
+
+    /**
+     * Store an uploaded file below the upload root and return the path relative
+     * to that root (for example `imports/4f2a.csv`).
+     *
+     * Use this with a private directory (storage/) for files that must not be
+     * publicly served.
+     */
+    public function store(UploadedFileInterface $uploadedFile, string $path = ''): string|false
+    {
         $extension = strtolower(pathinfo((string) $uploadedFile->getClientFilename(), PATHINFO_EXTENSION));
         $filename = bin2hex(random_bytes(8)) . ($extension === '' ? '' : '.' . $extension);
         $folder = trim($path, '/');
@@ -94,14 +115,48 @@ final class UploadHelper
         if ($this->uploadTarget() === 's3') {
             $result = $this->objectStorageUpload((string) $uploadedFile->getStream()->getMetadata('uri'), $relative);
 
-            return $result['status'] ? $result['url'] : false;
+            return $result['status'] ? $relative : false;
         }
 
         $targetDirectory = $this->directory . ($folder === '' ? '' : DIRECTORY_SEPARATOR . $folder);
         $this->ensureDirectory($targetDirectory);
         $uploadedFile->moveTo($targetDirectory . DIRECTORY_SEPARATOR . $filename);
 
-        return 'uploads/' . $relative;
+        return $relative;
+    }
+
+    /**
+     * Absolute local path for a path returned by moveUploadedFile(), or null
+     * when it does not point below the upload root.
+     */
+    public function absolutePath(string $publicPath): ?string
+    {
+        $prefix = 'uploads/';
+        if (!str_starts_with($publicPath, $prefix)) {
+            return null;
+        }
+
+        $relative = substr($publicPath, strlen($prefix));
+        if ($relative === '' || str_contains($relative, '..')) {
+            return null;
+        }
+
+        return $this->directory . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+    }
+
+    /**
+     * Delete a local file previously returned by moveUploadedFile(). Always
+     * false for object storage: S3 deletes are not wired in the starter.
+     */
+    public function deleteUploadedFile(string $publicPath): bool
+    {
+        if ($this->uploadTarget() === 's3') {
+            return false;
+        }
+
+        $absolute = $this->absolutePath($publicPath);
+
+        return $absolute !== null && is_file($absolute) && @unlink($absolute);
     }
 
     /**

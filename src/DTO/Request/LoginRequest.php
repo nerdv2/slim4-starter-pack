@@ -6,10 +6,11 @@ namespace App\DTO\Request;
 
 use Psr\Http\Message\ServerRequestInterface;
 
-final readonly class CustomerRequest
+final readonly class LoginRequest
 {
     public function __construct(
-        public string $name
+        public string $email,
+        public string $password
     ) {
     }
 
@@ -19,7 +20,8 @@ final readonly class CustomerRequest
         $body = is_array($body) ? $body : [];
 
         return new self(
-            name: trim((string) ($body['name'] ?? ''))
+            email: strtolower(trim((string) ($body['email'] ?? ''))),
+            password: (string) ($body['password'] ?? '')
         );
     }
 
@@ -30,8 +32,14 @@ final readonly class CustomerRequest
     {
         $errors = [];
 
-        if ($this->name === '') {
-            $errors['name'] = 'Name is required.';
+        if ($this->email === '') {
+            $errors['email'] = 'Email is required.';
+        } elseif (filter_var($this->email, FILTER_VALIDATE_EMAIL) === false) {
+            $errors['email'] = 'A valid email address is required.';
+        }
+
+        if ($this->password === '') {
+            $errors['password'] = 'Password is required.';
         }
 
         return $errors;

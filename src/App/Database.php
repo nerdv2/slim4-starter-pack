@@ -30,9 +30,19 @@ $createDatabaseConnection = static function (
     [$driver, $pdoDriver] = $resolveDatabaseDriver($driverName);
 
     if ($driver === Driver::Sqlite) {
+        // Relative paths resolve against the project root: the PHP built-in
+        // server runs with the docroot (public/) as the working directory, so
+        // a relative DB_NAME would otherwise point inside public/.
+        $sqlitePath = $database;
+        $isAbsolute = str_starts_with($sqlitePath, DIRECTORY_SEPARATOR)
+            || preg_match('/^[A-Za-z]:[\\\\\/]/', $sqlitePath) === 1;
+        if ($sqlitePath !== ':memory:' && !$isAbsolute) {
+            $sqlitePath = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . $sqlitePath;
+        }
+
         return Connection::connect(
             driver: $driver,
-            dsn: 'sqlite:' . $database,
+            dsn: 'sqlite:' . $sqlitePath,
             connectionOptions: new ConnectionOptions(label: $label)
         );
     }

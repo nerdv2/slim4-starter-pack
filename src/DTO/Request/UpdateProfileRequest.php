@@ -6,10 +6,10 @@ namespace App\DTO\Request;
 
 use Psr\Http\Message\ServerRequestInterface;
 
-final readonly class CustomerIdRequest
+final readonly class UpdateProfileRequest
 {
     public function __construct(
-        public int $id
+        public string $name
     ) {
     }
 
@@ -17,10 +17,9 @@ final readonly class CustomerIdRequest
     {
         $body = $request->getParsedBody();
         $body = is_array($body) ? $body : [];
-        $id = filter_var($body['id'] ?? null, FILTER_VALIDATE_INT);
 
         return new self(
-            id: is_int($id) && $id > 0 ? $id : 0
+            name: trim((string) ($body['name'] ?? ''))
         );
     }
 
@@ -29,7 +28,15 @@ final readonly class CustomerIdRequest
      */
     public function validate(): array
     {
-        return $this->id <= 0 ? ['id' => 'A positive id is required.'] : [];
+        $errors = [];
+
+        if ($this->name === '') {
+            $errors['name'] = 'Name is required.';
+        } elseif (mb_strlen($this->name) > 120) {
+            $errors['name'] = 'Name must not exceed 120 characters.';
+        }
+
+        return $errors;
     }
 
     public function isValid(): bool
