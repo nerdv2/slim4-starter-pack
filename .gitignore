@@ -22,6 +22,11 @@ storage/log/*
 !storage/log/.gitkeep
 storage/locks/*
 !storage/locks/.gitkeep
+storage/exports/*
+!storage/exports/.gitkeep
+storage/imports/*
+!storage/imports/.gitkeep
+storage/*.sqlite
 storage/test_database.sqlite
 # User-uploaded content, if present.
 /public/uploads/

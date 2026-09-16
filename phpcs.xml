@@ -18,8 +18,9 @@
     <exclude-pattern>*/public/*</exclude-pattern>
 
     <rule ref="PSR12"/>
-    <!-- Phinx migrations are framework-loaded global classes and cannot be namespaced. -->
+    <!-- Phinx migrations and seeders are framework-loaded global classes and cannot be namespaced. -->
     <rule ref="PSR1.Classes.ClassDeclaration.MissingNamespace">
         <exclude-pattern>*/db/migrations/*</exclude-pattern>
+        <exclude-pattern>*/db/seeds/*</exclude-pattern>
     </rule>
 </ruleset>
