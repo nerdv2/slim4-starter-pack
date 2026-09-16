@@ -65,6 +65,9 @@
         "worker": [
             "php bin/background-worker"
         ],
+        "routes:cache": [
+            "php scripts/dump-routes.php"
+        ],
         "generate-openapi-docs": [
             "./vendor/bin/openapi src/Controller -o public/openapi.yaml",
             "./vendor/bin/openapi src/Controller --format json -o public/openapi.json"

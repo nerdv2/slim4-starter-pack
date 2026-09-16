@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * CORS response headers.
+ *
+ * The OPTIONS preflight route lives in src/App/routes/core.php so the route
+ * table stays identical whether CORS is enabled or not (the compiled route
+ * cache is built without request environment).
+ */
+
 declare(strict_types=1);
 
 use Psr\Http\Message\ResponseInterface as Response;
@@ -8,10 +16,6 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Slim\App;
 
 return function (App $app): void {
-    $app->options('/{routes:.+}', function (Request $request, Response $response): Response {
-        return $response;
-    });
-
     $app->add(function (Request $request, RequestHandlerInterface $handler): Response {
         $response = $handler->handle($request);
 

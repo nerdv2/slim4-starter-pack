@@ -7,6 +7,7 @@
 /nbproject/
 /build/
 /cache/
+/.cache/
 /.env
 /.scannerwork/
 /.phpunit.result.cache
