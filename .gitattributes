@@ -1,0 +1,10 @@
+# Normalize line endings in the repository; check out LF everywhere.
+* text=auto eol=lf
+
+# Binary assets.
+*.ico binary
+*.png binary
+*.sqlite binary
+
+# Bundled Swagger UI assets are third-party; keep them out of language stats.
+public/swagger/* linguist-vendored
