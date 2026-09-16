@@ -2,118 +2,185 @@
 
 [![CI](https://github.com/nerdv2/slim4-starter-pack/actions/workflows/ci.yml/badge.svg)](https://github.com/nerdv2/slim4-starter-pack/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![PHP 8.3+](https://img.shields.io/badge/php-8.3%2B-777bb4.svg)](composer.json)
 
-A slim starter project to allow developing using Slim 4 easier, contains REST API, Query builder, and Twig templating engine.
+A production-ready [Slim 4](https://www.slimframework.com/) starter for building JSON REST APIs:
+a no-ORM query builder, JWT authentication, a background job queue, optional Redis caching and
+Twig templating — with the architecture rules, quality gates and deployment guides included.
 
 ## Background
 
-This project started when I needed a replacement for CodeIgniter 3 for a more modern development environment while retaining the familiar Model-View-Controller (MVC) structure, with a lightweight enough framework to develop for.
+This project started when I needed a replacement for CodeIgniter 3 for a more modern development
+environment while retaining the familiar Model-View-Controller (MVC) structure, with a lightweight
+enough framework to develop for. The conventions and structure follow what has been proven in
+production projects built from this starter (see [AGENTS.md](AGENTS.md) and the
+[documentation](docs/README.md)).
 
-The conventions and structure follow what has been proven in production projects built from this
-starter (see [AGENTS.md](AGENTS.md) and the [documentation](docs/README.md)).
+## Features
+
+**HTTP & API**
+
+- Slim 4 scaffolding with PSR-7, PSR-11 and PSR-15 implementations
+- Standard JSON response envelope (`status`/`message`/`data`), pagination metadata and
+  `application/problem+json` error output with Monolog logging
+- `X-Request-ID` request tracing and env-driven CORS
+- OpenAPI 3 specification generated from `#[OA\...]` attributes (swagger-php 6) with a bundled
+  Swagger UI
+
+**Data layer**
+
+- [oeltimacreation/php-simplequery](https://github.com/oeltimacreation/php-simplequery) query
+  builder (MySQL, MariaDB and SQLite; no ORM) with a shared `BaseModel`, pagination, keyword search
+  and managed transactions
+- Phinx migrations and seeders, plus an optional read replica connection
+
+**Authentication**
+
+- JWT (lcobucci/jwt) with PSR-15 authentication and role-based authorization middleware
+- Development token command for local testing
+
+**Background jobs**
+
+- [oeltimacreation/php-simplequeue](https://github.com/oeltimacreation/php-simplequeue) queue with a
+  worker binary, dispatch/status endpoints, retries, stuck-job recovery and graceful recycling
+
+**Performance & operations**
+
+- Optional Redis cache with namespaced keys, O(1) invalidation and fail-open behaviour
+- Compiled FastRoute dispatcher cache for production (`composer run routes:cache`)
+- Health endpoints (`/health`, `/health/ready`, `/health/detailed`), optional Sentry error reporting
+- Digest-pinned PHP 8.3 + Nginx container image (`Dockerfile`), separate worker container and a CI
+  build/smoke test
+
+**Quality**
+
+- PHPStan level 5, PHPCS (PSR-12) and PHPUnit unit/integration suites on SQLite — no database server
+  required for tests
 
 ## Requirements
 
 - PHP 8.3+ with `pdo_mysql` (`pdo_sqlite` for SQLite), `mbstring`, `json`, `openssl`, `curl` and
   `fileinfo` extensions
 - Composer 2.x
-- MySQL 8.0+ / MariaDB 10.6+ (SQLite works for a quick local setup)
+- MySQL 8.0+ / MariaDB 10.6+, or SQLite for a quick start
 - Redis and S3 credentials are optional
 
-## Initial setup
+## Quick start
 
 ```bash
+git clone https://github.com/nerdv2/slim4-starter-pack.git
+cd slim4-starter-pack
 composer install
 cp .env.example .env
-# edit .env: database credentials and JWT_SECRET (openssl rand -hex 32)
-composer run migrate
 ```
 
-- Make sure the `storage` folder is writable: the application writes the parsed env cache,
-  compiled Twig templates and the error log there.
+Then pick one of the two setup paths.
 
-## Starting application
+**SQLite — zero configuration.** Shell environment variables override `.env`:
 
-Execute `composer run serve` to start the development server, by default the application serves on
-http://127.0.0.1:8080. Use `composer run dev` to start the webserver together with the background
-worker.
+```bash
+DB_DRIVER=sqlite DB_NAME=storage/test_database.sqlite composer run migrate
+DB_DRIVER=sqlite DB_NAME=storage/test_database.sqlite JWT_SECRET="$(openssl rand -hex 32)" composer run serve
+```
+
+**MySQL / MariaDB.** Edit `.env` with the database credentials and a `JWT_SECRET`
+(`openssl rand -hex 32`), then:
+
+```bash
+composer run migrate
+composer run serve
+```
+
+The server listens on http://127.0.0.1:8080; `composer run dev` starts the webserver together with
+the background worker. Make sure `storage/` is writable: the application writes the parsed env
+cache, compiled Twig templates, the route cache and logs there.
 
 Smoke checks:
 
 ```bash
-curl -s localhost:8080/ | jq                       # application status envelope
-curl -s localhost:8080/swaggerui                   # Swagger UI
-composer run token -- id=1 type=admin              # development JWT
+curl -s localhost:8080/ | jq                 # application status envelope
+curl -s localhost:8080/health/ready | jq     # database readiness
 ```
+
+Swagger UI is available at http://127.0.0.1:8080/swaggerui.
+
+## Authentication
+
+Protected endpoints expect a JWT in the `Authorization` header (raw token or `Bearer <token>`).
+The bundled command signs a development token with `JWT_SECRET`:
+
+```bash
+TOKEN=$(composer run token -- id=1 type=admin)
+
+# Public list endpoint
+curl -s 'http://localhost:8080/customer?page=1&limit=10' | jq
+
+# Admin-only write endpoint
+curl -s -X POST http://localhost:8080/customer/add \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Acme"}' | jq
+```
+
+See [API Conventions](docs/api-conventions.md) for token claims, roles and error responses.
+
+## Project structure
+
+```text
+src/App/             bootstrap, container, routes and middleware wiring
+src/Controller/      HTTP handlers
+src/Service/         business rules
+src/Model/           SimpleQuery data access
+src/DTO/Request/     validated request payloads
+src/Middleware/      authentication, authorization, health token, request id
+src/Jobs/            background job handlers
+src/Helper/          JsonResponse, Pagination, JwtHelper, UploadHelper, ...
+db/migrations/       Phinx migrations and seeders
+public/              front controller, Swagger UI and generated OpenAPI files
+tests/               PHPUnit unit and integration suites (SQLite)
+docs/                developer guides
+```
+
+## Commands
+
+| Command | Purpose |
+|---------|---------|
+| `composer run serve` | Development server on http://127.0.0.1:8080. |
+| `composer run dev` | Development server + background worker with prefixed output. |
+| `composer run worker` | Background worker for the default queue. |
+| `composer run migrate` | Apply Phinx migrations. |
+| `composer run migrate:rollback` | Roll back the last migration. |
+| `composer run seed` | Run Phinx seeders. |
+| `composer run token -- id=1 type=admin` | Generate a development JWT. |
+| `composer run generate-openapi-docs` | Regenerate `public/openapi.yaml` and `.json`. |
+| `composer run routes:cache` | Compile the production route cache. |
+| `composer run check` | `composer validate` + PHPStan level 5 + PHPCS (PSR-12). |
+| `composer run test` | PHPUnit suites (SQLite, no database server required). |
+| `composer run test-unit` / `test-integration` | Run a single test suite. |
 
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
-| [docs/architecture.md](docs/architecture.md) | Stack, bootstrap sequence, request lifecycle and layering. |
-| [docs/api-conventions.md](docs/api-conventions.md) | Response envelope, authentication, pagination, errors and CORS. |
-| [docs/database.md](docs/database.md) | Connections, `BaseModel`, query patterns and migrations. |
-| [docs/development.md](docs/development.md) | Local setup, environment variables, commands and adding an endpoint. |
-| [AGENTS.md](AGENTS.md) | Contributor and AI-agent conventions. |
+| [Architecture](docs/architecture.md) | Stack, bootstrap sequence, request lifecycle and layering. |
+| [API Conventions](docs/api-conventions.md) | Response envelope, authentication, pagination, errors and CORS. |
+| [Database](docs/database.md) | Connections, `BaseModel`, query patterns and migrations. |
+| [Development](docs/development.md) | Local setup, environment variables, commands and adding an endpoint. |
+| [Background Jobs](docs/background-jobs.md) | Queue architecture, job handlers, worker and dev runner. |
+| [Caching](docs/caching.md) | Redis design, key format, invalidation map and operations. |
+| [Deployment](docs/deployment.md) | Container image, migrations, worker containers, Compose and CI. |
+| [AGENTS.md](AGENTS.md) | Architecture rules, layering and contributor conventions. |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution workflow, quality gates and commit conventions. |
-| [SECURITY.md](SECURITY.md) | How to report vulnerabilities and deployment hardening notes. |
-
-## Included components
-
-- Slim 4 scaffolding, including PSR-7, PSR-11 and PSR-15 implementation
-- Query builder built on [oeltimacreation/php-simplequery](https://github.com/oeltimacreation/php-simplequery) (MySQL, MariaDB and SQLite; no ORM) with a shared `BaseModel`, pagination, keyword search and managed transactions
-- Standard JSON response envelope, pagination metadata and `application/problem+json` error output with Monolog logging
-- JWT authentication (lcobucci/jwt) with PSR-15 authentication/authorization middleware and a development token command
-- Database migration and seeder using [phinx](https://phinx.org/)
-- Twig templating engine, used for the bundled Swagger UI page
-- OpenAPI 3 specification generated from `#[OA\...]` attributes (swagger-php 6) with a bundled Swagger UI
-- DotEnv integration with a cached parse, plus a compiled Twig template cache
-- DTO validation, a service layer for business rules and typed exceptions that map to 4xx envelopes
-- Health endpoints, `X-Request-ID` request tracing and optional Sentry error reporting
-- Background job queue (php-simplequeue) with a worker, admin status endpoints and a combined development runner
-- Optional Redis cache with namespaced keys, O(1) invalidation and fail-open behaviour
-- Compiled route cache for production dispatches (`composer run routes:cache`), disabled in development
-- Optional Redis and object storage (AWS S3, DO Spaces, etc.) configuration, including an upload helper
-- Quality gates: PHPStan level 5, PHPCS (PSR-12) and a combined `composer check`
-
-## Note on CORS (Cross-Origin Resource Sharing) configuration
-
-CORS is env-driven (`CORS_ENABLED`). By default it is enabled for `development`/`testing`
-environments and for `localhost`, which helps local development and the PHP development server.
-
-For production, either:
-
-- let the application handle CORS with `CORS_ENABLED=true` and an exact
-  `CORS_ALLOWED_ORIGINS` allowlist, or
-- disable it (`CORS_ENABLED=false`) and let the webserver or reverse proxy manage CORS, including
-  preflight requests.
-
-Do not do both at once: duplicate `Access-Control-Allow-*` headers confuse browsers.
-
-## Generating OpenAPI/Swagger files
-
-- Run `composer run generate-openapi-docs`
-- Files are generated in `public/openapi.json` and `public/openapi.yaml`
-- When running the application, access the bundled Swagger UI at http://127.0.0.1:8080/swaggerui
-
-## Quality checks
-
-```bash
-composer run check      # composer validate + PHPStan + PHPCS
-composer run analyse    # PHPStan level 5
-composer run phpcs      # PSR-12 code style
-composer run phpcbf     # auto-fix code style
-composer run test       # PHPUnit suites (SQLite, no database server required)
-```
+| [SECURITY.md](SECURITY.md) | Vulnerability reporting and deployment hardening. |
+| [public/openapi.yaml](public/openapi.yaml) | Generated API reference. |
 
 ## Server deployment
 
 The recommended path is the digest-pinned container image (`Dockerfile`), including a separate
-worker container and a CI build/smoke test — see [docs/deployment.md](docs/deployment.md).
+worker container and a CI build/smoke test — see [Deployment](docs/deployment.md).
 
-The application also runs on a plain PHP-FPM host: point the webserver at the `public` folder and
-use the virtual host setup for NGINX running on Ubuntu Server 24.04 LTS below. CORS is handled by
-the application only in development; the proxy can manage it in production (see above).
+The application also runs on a plain PHP-FPM host: point the webserver at the `public/` folder and
+use the virtual host setup for NGINX running on Ubuntu Server 24.04 LTS below.
 
 ```nginx
 server {
@@ -136,8 +203,11 @@ server {
 }
 ```
 
-Protected endpoints require `JWT_SECRET` to be set in the environment; keep
-`DISPLAY_ERROR_DETAILS` disabled in production.
+CORS is env-driven (`CORS_ENABLED`) and defaults to on for `development`/`testing`. In production,
+either allow exact origins with `CORS_ALLOWED_ORIGINS`, or disable it and let the webserver or
+reverse proxy manage CORS and preflight requests — do not do both at once, as duplicate
+`Access-Control-Allow-*` headers confuse browsers. Keep `DISPLAY_ERROR_DETAILS=false` and always set
+`JWT_SECRET` and `HEALTHCHECK_TOKEN` in deployed environments.
 
 ## Contributing
 
