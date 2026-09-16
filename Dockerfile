@@ -40,9 +40,12 @@ COPY --chown=$APP_USER:$APP_GROUP . .
 # above only had composer.json/composer.lock available.
 RUN composer dump-autoload --no-dev --optimize --classmap-authoritative --no-interaction
 
-# Writable runtime directories: env cache, Twig cache, logs, uploads and worker locks.
-RUN mkdir -p storage/cache storage/log storage/locks public/uploads && \
-    chown -R "${APP_USER}:${APP_GROUP}" storage public/uploads && \
+# Precompile the FastRoute dispatcher cache; route changes require a rebuild.
+RUN php scripts/dump-routes.php
+
+# Writable runtime directories: env cache, Twig cache, logs, uploads, route cache and worker locks.
+RUN mkdir -p storage/cache storage/log storage/locks public/uploads .cache && \
+    chown -R "${APP_USER}:${APP_GROUP}" storage public/uploads .cache && \
     find storage public/uploads -type d -exec chmod 0750 {} + && \
     find storage public/uploads -type f -exec chmod 0640 {} + && \
     chmod +x bin/background-worker bin/dev-server bin/generate-token

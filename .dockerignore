@@ -12,6 +12,7 @@ storage/log
 storage/locks
 storage/test_database.sqlite
 public/uploads
+.cache
 
 # Development and test tooling
 tests
