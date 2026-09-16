@@ -38,5 +38,7 @@
         <env name="DB_NAME" value="storage/test_database.sqlite" force="true"/>
         <env name="QUEUE_DRIVER" value="database" force="true"/>
         <env name="DISPLAY_ERROR_DETAILS" value="true" force="true"/>
+        <!-- The application reads several flags from $_SERVER, which <env> does not populate. -->
+        <server name="DISPLAY_ERROR_DETAILS" value="true"/>
     </php>
 </phpunit>

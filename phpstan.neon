@@ -3,5 +3,6 @@ parameters:
     paths:
         - src
         - bin
+        - scripts
         - tests
     phpVersion: 80300

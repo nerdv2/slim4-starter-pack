@@ -6,10 +6,12 @@ namespace Tests\Integration\Cache;
 
 use App\Helper\CacheRedis;
 use PHPUnit\Framework\TestCase;
+use Tests\Traits\OverridesEnvironment;
 use Tests\Traits\RequiresRedis;
 
 final class CacheRedisTest extends TestCase
 {
+    use OverridesEnvironment;
     use RequiresRedis;
 
     private CacheRedis $cache;
@@ -20,6 +22,13 @@ final class CacheRedisTest extends TestCase
 
         $this->requireRedis();
         $this->cache = new CacheRedis();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreEnvironment();
+
+        parent::tearDown();
     }
 
     public function testJsonRoundTripAndDelete(): void
@@ -80,43 +89,19 @@ final class CacheRedisTest extends TestCase
 
     public function testFailsOpenWhenRedisIsUnreachable(): void
     {
-        $originalHost = $_SERVER['REDIS_SERVER_HOST'] ?? null;
-        $originalPort = $_SERVER['REDIS_SERVER_PORT'] ?? null;
+        $this->overrideEnvironment([
+            'REDIS_SERVER_HOST' => '127.0.0.1',
+            'REDIS_SERVER_PORT' => '1',
+        ]);
 
-        $_SERVER['REDIS_SERVER_HOST'] = $_ENV['REDIS_SERVER_HOST'] = '127.0.0.1';
-        $_SERVER['REDIS_SERVER_PORT'] = $_ENV['REDIS_SERVER_PORT'] = '1';
-        putenv('REDIS_SERVER_HOST=127.0.0.1');
-        putenv('REDIS_SERVER_PORT=1');
+        $cache = new CacheRedis();
 
-        try {
-            $cache = new CacheRedis();
-
-            self::assertNull($cache->get('unreachable'));
-            self::assertFalse($cache->set('unreachable', 'value', 60));
-            self::assertFalse($cache->isEnabled());
-            self::assertSame(
-                ['fallback' => true],
-                $cache->rememberJson('unreachable', 60, static fn (): array => ['fallback' => true])
-            );
-        } finally {
-            $this->restoreRedisEnvironment($originalHost, $originalPort);
-        }
-    }
-
-    private function restoreRedisEnvironment(?string $host, ?string $port): void
-    {
-        unset($_SERVER['REDIS_SERVER_HOST'], $_ENV['REDIS_SERVER_HOST']);
-        unset($_SERVER['REDIS_SERVER_PORT'], $_ENV['REDIS_SERVER_PORT']);
-        putenv('REDIS_SERVER_HOST');
-        putenv('REDIS_SERVER_PORT');
-
-        if (is_string($host)) {
-            $_SERVER['REDIS_SERVER_HOST'] = $_ENV['REDIS_SERVER_HOST'] = $host;
-            putenv('REDIS_SERVER_HOST=' . $host);
-        }
-        if (is_string($port)) {
-            $_SERVER['REDIS_SERVER_PORT'] = $_ENV['REDIS_SERVER_PORT'] = $port;
-            putenv('REDIS_SERVER_PORT=' . $port);
-        }
+        self::assertNull($cache->get('unreachable'));
+        self::assertFalse($cache->set('unreachable', 'value', 60));
+        self::assertFalse($cache->isEnabled());
+        self::assertSame(
+            ['fallback' => true],
+            $cache->rememberJson('unreachable', 60, static fn (): array => ['fallback' => true])
+        );
     }
 }

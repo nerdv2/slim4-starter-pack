@@ -6,11 +6,11 @@ namespace Tests\Integration\Controller;
 
 use App\Middleware\RequestIdMiddleware;
 use Tests\TestCase;
+use Tests\Traits\OverridesEnvironment;
 
 final class HealthTest extends TestCase
 {
-    /** @var array<string, string|false|null> */
-    private array $originalEnvironment = [];
+    use OverridesEnvironment;
 
     protected function tearDown(): void
     {
@@ -100,33 +100,5 @@ final class HealthTest extends TestCase
 
         self::assertSame(404, $response->getStatusCode());
         self::assertSame('trace-42', $response->getHeaderLine(RequestIdMiddleware::HEADER));
-    }
-
-    /**
-     * @param array<string, string> $values
-     */
-    private function overrideEnvironment(array $values): void
-    {
-        foreach ($values as $name => $value) {
-            $this->originalEnvironment[$name] = $_SERVER[$name] ?? $_ENV[$name] ?? getenv($name);
-
-            $_SERVER[$name] = $_ENV[$name] = $value;
-            putenv($name . '=' . $value);
-        }
-    }
-
-    private function restoreEnvironment(): void
-    {
-        foreach ($this->originalEnvironment as $name => $original) {
-            unset($_SERVER[$name], $_ENV[$name]);
-            putenv($name);
-
-            if (is_string($original)) {
-                $_SERVER[$name] = $_ENV[$name] = $original;
-                putenv($name . '=' . $original);
-            }
-        }
-
-        $this->originalEnvironment = [];
     }
 }

@@ -5,6 +5,7 @@
     <file>src</file>
     <file>bin</file>
     <file>db</file>
+    <file>scripts</file>
     <file>tests</file>
 
     <arg name="colors"/>
