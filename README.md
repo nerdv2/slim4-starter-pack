@@ -1,5 +1,8 @@
 # slim4-starter-pack
 
+[![CI](https://github.com/nerdv2/slim4-starter-pack/actions/workflows/ci.yml/badge.svg)](https://github.com/nerdv2/slim4-starter-pack/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A slim starter project to allow developing using Slim 4 easier, contains REST API, Query builder, and Twig templating engine.
 
 ## Background
@@ -52,6 +55,8 @@ composer run token -- id=1 type=admin              # development JWT
 | [docs/database.md](docs/database.md) | Connections, `BaseModel`, query patterns and migrations. |
 | [docs/development.md](docs/development.md) | Local setup, environment variables, commands and adding an endpoint. |
 | [AGENTS.md](AGENTS.md) | Contributor and AI-agent conventions. |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution workflow, quality gates and commit conventions. |
+| [SECURITY.md](SECURITY.md) | How to report vulnerabilities and deployment hardening notes. |
 
 ## Included components
 
@@ -133,3 +138,20 @@ server {
 
 Protected endpoints require `JWT_SECRET` to be set in the environment; keep
 `DISPLAY_ERROR_DETAILS` disabled in production.
+
+## Contributing
+
+Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) for the setup, quality
+gates and commit conventions; [AGENTS.md](AGENTS.md) documents the architecture rules the code
+follows and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) covers community expectations.
+
+## Security
+
+Report suspected vulnerabilities privately through
+[GitHub security advisories](https://github.com/nerdv2/slim4-starter-pack/security/advisories/new)
+or by email, as described in [SECURITY.md](SECURITY.md). Do not open a public issue for a security
+problem.
+
+## License
+
+Released under the [MIT License](LICENSE).

@@ -36,6 +36,9 @@ php -l path/to/file.php               # syntax check
 |----------|--------|
 | [README.md](README.md) | Public overview, setup, deployment notes. |
 | [docs/](docs/README.md) | Developer guides: architecture, API conventions, database, development, background jobs, deployment. Internal planning notes also live in `docs/` but are git-ignored. |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution workflow, quality gates and commit conventions. |
+| [SECURITY.md](SECURITY.md) | Vulnerability reporting and deployment hardening. |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community expectations and enforcement. |
 | [public/openapi.yaml](public/openapi.yaml) + [.json](public/openapi.json) | Generated API reference (regenerate with the command above). |
 
 ## 3. Golden Rules

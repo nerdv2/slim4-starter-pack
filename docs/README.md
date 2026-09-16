@@ -16,5 +16,8 @@ Related files:
 
 - [README.md](../README.md) — project overview and quick start.
 - [AGENTS.md](../AGENTS.md) — contributor and AI-agent rules.
+- [CONTRIBUTING.md](../CONTRIBUTING.md) — contribution workflow, quality gates and commit
+  conventions.
+- [SECURITY.md](../SECURITY.md) — vulnerability reporting and deployment hardening.
 - [public/openapi.yaml](../public/openapi.yaml) — generated API reference (Swagger UI at
   `/swaggerui`).
