@@ -44,7 +44,7 @@ final class RouteCacheTest extends TestCase
 
         // Subsequent requests are served from the compiled dispatcher cache.
         self::assertSame(200, $this->handle($this->createRequest('GET', '/health/ready'))->getStatusCode());
-        self::assertSame(200, $this->handle($this->createRequest('GET', '/customer'))->getStatusCode());
+        self::assertSame(401, $this->handle($this->createRequest('GET', '/customer'))->getStatusCode());
         self::assertSame(404, $this->handle($this->createRequest('GET', '/missing'))->getStatusCode());
     }
 }

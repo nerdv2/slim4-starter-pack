@@ -11,35 +11,39 @@ use Slim\Psr7\Factory\ServerRequestFactory;
 
 final class CustomerUpdateRequestTest extends TestCase
 {
-    public function testFromRequestCastsAndTrims(): void
+    public function testIdComesFromTheRouteAndPayloadIsTrimmed(): void
     {
-        $dto = CustomerUpdateRequest::fromRequest($this->request(['id' => '7', 'name' => ' Acme ']));
+        $dto = CustomerUpdateRequest::fromRequest(
+            $this->request(['name' => ' Acme ', 'status' => 'prospect']),
+            '7'
+        );
 
         self::assertSame(7, $dto->id);
-        self::assertSame('Acme', $dto->name);
+        self::assertSame('Acme', $dto->payload->name);
+        self::assertSame('prospect', $dto->payload->status);
         self::assertTrue($dto->isValid());
     }
 
     public function testInvalidIdIsRejected(): void
     {
-        foreach (['abc', '0', '-3', ''] as $id) {
-            $dto = CustomerUpdateRequest::fromRequest($this->request(['id' => $id, 'name' => 'Acme']));
+        foreach (['abc', '0', '-3', '', null] as $id) {
+            $dto = CustomerUpdateRequest::fromRequest($this->request(['name' => 'Acme']), $id);
 
-            self::assertFalse($dto->isValid(), "Id should be invalid: {$id}");
+            self::assertFalse($dto->isValid());
             self::assertArrayHasKey('id', $dto->validate());
         }
     }
 
     public function testMissingNameIsRejected(): void
     {
-        $dto = CustomerUpdateRequest::fromRequest($this->request(['id' => '1', 'name' => '']));
+        $dto = CustomerUpdateRequest::fromRequest($this->request(['name' => '']), '1');
 
         self::assertSame(['name' => 'Name is required.'], $dto->validate());
     }
 
     public function testAllErrorsAreReportedTogether(): void
     {
-        $dto = CustomerUpdateRequest::fromRequest($this->request([]));
+        $dto = CustomerUpdateRequest::fromRequest($this->request([]), null);
 
         self::assertSame(
             ['id' => 'A positive id is required.', 'name' => 'Name is required.'],
@@ -53,7 +57,7 @@ final class CustomerUpdateRequestTest extends TestCase
     private function request(array $body): ServerRequestInterface
     {
         return (new ServerRequestFactory())
-            ->createServerRequest('POST', '/customer/update')
+            ->createServerRequest('PUT', '/customer/1')
             ->withParsedBody($body);
     }
 }

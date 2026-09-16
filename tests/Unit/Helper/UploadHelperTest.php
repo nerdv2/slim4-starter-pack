@@ -103,6 +103,42 @@ final class UploadHelperTest extends TestCase
         self::assertFileExists($this->tempDirectory . '/uploads/avatars/' . basename($url));
     }
 
+    public function testStoreKeepsFilesPrivateAndSupportsDeletion(): void
+    {
+        $helper = new UploadHelper($this->tempDirectory . '/private');
+        $uploadedFile = new UploadedFile(
+            (new StreamFactory())->createStreamFromFile($this->sourceFile),
+            'data.csv',
+            'text/csv',
+            (int) filesize($this->sourceFile),
+            UPLOAD_ERR_OK
+        );
+
+        $relative = $helper->store($uploadedFile, 'imports');
+
+        self::assertIsString($relative);
+        self::assertMatchesRegularExpression('#^imports/[a-f0-9]{16}\.csv$#', $relative);
+        self::assertFileExists($this->tempDirectory . '/private/' . $relative);
+        self::assertNull($helper->absolutePath($relative), 'Private paths have no public URL mapping.');
+
+        // store() moves the source file, so create a fresh one for the public upload.
+        $secondSource = $this->tempDirectory . '/second.jpg';
+        file_put_contents($secondSource, "\xFF\xD8\xFF\xE0" . str_repeat("\x00", 16));
+        $publicFile = new UploadedFile(
+            (new StreamFactory())->createStreamFromFile($secondSource),
+            'photo.jpg',
+            'image/jpeg',
+            (int) filesize($secondSource),
+            UPLOAD_ERR_OK
+        );
+        $publicPath = $helper->moveUploadedFile($publicFile, 'avatars');
+
+        self::assertIsString($publicPath);
+        self::assertFileExists($helper->absolutePath($publicPath) ?? '');
+        self::assertTrue($helper->deleteUploadedFile($publicPath));
+        self::assertFalse($helper->deleteUploadedFile($publicPath));
+    }
+
     private function removeDirectory(string $directory): void
     {
         if (!is_dir($directory)) {

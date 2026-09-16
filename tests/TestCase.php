@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use App\Helper\JwtHelper;
+use App\Helper\RefreshCookie;
 use Oeltima\SimpleQuery\Connection;
 use PDO;
 use Phinx\Config\Config;
@@ -133,5 +134,68 @@ abstract class TestCase extends PHPUnitTestCase
     protected function authHeader(string $type = 'admin', int $id = 1): string
     {
         return 'Bearer ' . JwtHelper::buildToken(['id' => $id, 'type' => $type]);
+    }
+
+    /**
+     * Insert an account and return its id and credentials.
+     *
+     * @param array<string, mixed> $overrides
+     * @return array{id: int, email: string, password: string}
+     */
+    protected function createUser(
+        string $type = 'admin',
+        string $password = 'Password123!',
+        array $overrides = []
+    ): array {
+        $row = TestFactory::user(array_merge([
+            'type' => $type,
+            'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+        ], $overrides));
+
+        $id = (int) $this->connection()->table('user')->insertGetId($row);
+
+        return ['id' => $id, 'email' => (string) $row['email'], 'password' => $password];
+    }
+
+    /**
+     * Read a cookie value from the Set-Cookie headers of a response.
+     */
+    protected function responseCookie(
+        ResponseInterface $response,
+        string $name = RefreshCookie::NAME
+    ): ?string {
+        foreach ($response->getHeaders()['Set-Cookie'] ?? [] as $header) {
+            if (str_starts_with($header, $name . '=')) {
+                $value = explode(';', substr($header, strlen($name) + 1), 2)[0];
+
+                return rawurldecode($value);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Bearer header for a real account, so endpoints that read the database
+     * resolve an existing user.
+     *
+     * @param array{id: int, email: string, password: string} $user
+     */
+    protected function bearerFor(array $user, string $type = 'admin'): string
+    {
+        return 'Bearer ' . JwtHelper::buildToken([
+            'id' => $user['id'],
+            'email' => $user['email'],
+            'type' => $type,
+        ]);
+    }
+
+    /**
+     * Attach the refresh cookie the way the web server does ($_COOKIE), so
+     * RefreshCookie::fromRequest() sees it.
+     */
+    protected function withRefreshCookie(ServerRequestInterface $request, string $token): ServerRequestInterface
+    {
+        return $request->withCookieParams([RefreshCookie::NAME => $token]);
     }
 }

@@ -34,6 +34,12 @@
         <env name="JWT_SECRET" value="0123456789abcdef0123456789abcdef" force="true"/>
         <env name="JWT_IDENTIFIER" value="" force="true"/>
         <env name="JWT_TTL" value="+7 day" force="true"/>
+        <env name="JWT_ACCESS_TTL" value="+15 minute" force="true"/>
+        <env name="REFRESH_TOKEN_TTL_DAYS" value="30" force="true"/>
+        <env name="AUTH_COOKIE_SECURE" value="false" force="true"/>
+        <env name="UPLOAD_AVATAR_MAX_BYTES" value="2097152" force="true"/>
+        <env name="UPLOAD_AVATAR_EXTENSIONS" value="jpg,jpeg,png,webp" force="true"/>
+        <env name="UPLOAD_IMPORT_MAX_BYTES" value="5242880" force="true"/>
         <env name="DB_DRIVER" value="sqlite" force="true"/>
         <env name="DB_NAME" value="storage/test_database.sqlite" force="true"/>
         <env name="QUEUE_DRIVER" value="database" force="true"/>

@@ -110,6 +110,17 @@ final class JwtHelperTest extends TestCase
         }
     }
 
+    public function testAccessTtlDefaultsAndReadsTheEnvironment(): void
+    {
+        unset($_SERVER['JWT_ACCESS_TTL'], $_ENV['JWT_ACCESS_TTL']);
+        self::assertSame(JwtHelper::DEFAULT_ACCESS_TTL, JwtHelper::accessTtl());
+
+        $_SERVER['JWT_ACCESS_TTL'] = $_ENV['JWT_ACCESS_TTL'] = '+5 minute';
+        self::assertSame('+5 minute', JwtHelper::accessTtl());
+
+        unset($_SERVER['JWT_ACCESS_TTL'], $_ENV['JWT_ACCESS_TTL']);
+    }
+
     private function overrideSecret(?string $secret): void
     {
         if (!$this->secretOverridden) {
