@@ -8,7 +8,10 @@
 /build/
 /cache/
 /.cache/
+# Environment files: never commit real values, keep the template.
 /.env
+/.env.*
+!/.env.example
 /.scannerwork/
 /.phpunit.result.cache
 .phpunit.cache/
@@ -20,3 +23,5 @@ storage/log/*
 storage/locks/*
 !storage/locks/.gitkeep
 storage/test_database.sqlite
+# User-uploaded content, if present.
+/public/uploads/
