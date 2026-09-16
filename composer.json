@@ -36,7 +36,7 @@
         "oeltimacreation/php-simplequeue": "^1.10",
         "pimple/pimple": "^3.2",
         "predis/predis": "^3.6",
-        "robmorgan/phinx": "^0.15.5",
+        "robmorgan/phinx": "^0.16.12",
         "selective/basepath": "^2.1",
         "sentry/sentry": "^4.31",
         "slim/psr7": "^1.0.0",
