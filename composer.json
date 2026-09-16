@@ -1,6 +1,24 @@
 {
     "name": "nerdv2/slim4-skeleton",
-    "description": "Slim 4 Skeleton",
+    "description": "Slim 4 starter project with REST API scaffolding, query builder, JWT authentication, background jobs and Twig templating.",
+    "keywords": [
+        "slim",
+        "slim4",
+        "skeleton",
+        "starter",
+        "php",
+        "rest-api",
+        "jwt",
+        "twig",
+        "phinx",
+        "queue"
+    ],
+    "homepage": "https://github.com/nerdv2/slim4-starter-pack",
+    "license": "MIT",
+    "support": {
+        "issues": "https://github.com/nerdv2/slim4-starter-pack/issues",
+        "source": "https://github.com/nerdv2/slim4-starter-pack"
+    },
     "require": {
         "php": "^8.3",
         "ext-curl": "*",
