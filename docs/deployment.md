@@ -76,6 +76,21 @@ Run migrations from a one-off container in orchestrated deployments (Kubernetes 
 prestart task, Compose `depends_on` init service) before starting the new web containers. Running
 as `www-data` keeps SQLite files writable by the application user.
 
+## Route Cache
+
+The container image precompiles the FastRoute dispatcher cache during the build, so production
+containers serve routes from the compiled file. On VM deployments run it after every release:
+
+```bash
+composer run routes:cache
+```
+
+- The cache is enabled unless `DISPLAY_ERROR_DETAILS=true`; `ROUTE_CACHE=false` is a kill switch
+  and `ROUTE_CACHE_FILE` overrides the location (default `.cache/routes.cache.php`).
+- Regenerate whenever `src/App/routes/` changes: a stale cache can serve the wrong handler.
+- Route definitions must stay independent of the request environment; environment-specific
+  behaviour belongs in middleware.
+
 ## Queue Worker
 
 The image contains the application; run the worker as a separate container from the same image,

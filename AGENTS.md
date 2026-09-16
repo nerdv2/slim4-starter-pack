@@ -20,6 +20,7 @@ composer run migrate:rollback         # roll back the last migration
 composer run seed                     # run Phinx seeders
 composer run token -- id=1 type=admin # generate a development JWT
 composer run generate-openapi-docs    # regenerate public/openapi.yaml + .json
+composer run routes:cache             # compile the FastRoute dispatcher cache
 composer run analyse                  # PHPStan level 5 (zero findings)
 composer run phpcs                    # PSR-12 code style check
 composer run check                    # composer validate + analyse + phpcs
@@ -171,7 +172,12 @@ public function list(Request $request, Response $response): Response
 
 ### Routes
 
-- Register routes in `src/App/Routes.php` with a name (`->setName('...')`).
+- Register routes in the matching file under `src/App/routes/` (core, health, customer,
+  background_jobs) and add new files to the manifest in `src/App/Routes.php`.
+- Name every route (`->setName('...')`) and keep registrations flat.
+- Route definitions must not depend on the request environment: the compiled route cache is built
+  without a request, so a conditional route would shift identifiers and serve the wrong handler.
+  Put environment-specific behaviour in middleware instead.
 - Protected routes declare middleware next to the route. Slim runs the last-added middleware
   first, so add the authorization check first and authentication last:
 
@@ -180,7 +186,8 @@ public function list(Request $request, Response $response): Response
   ->add(new AuthenticationMiddleware())
   ```
 
-- Keep the `NotFound.php` catch-all as the last registration.
+- Keep the `NotFound.php` catch-all as the last registration, and run `composer run routes:cache`
+  after changing routes in production (the cache is disabled while `DISPLAY_ERROR_DETAILS` is on).
 
 ### Configuration
 

@@ -67,6 +67,7 @@ composer run token -- id=1 type=admin              # development JWT
 - Health endpoints, `X-Request-ID` request tracing and optional Sentry error reporting
 - Background job queue (php-simplequeue) with a worker, admin status endpoints and a combined development runner
 - Optional Redis cache with namespaced keys, O(1) invalidation and fail-open behaviour
+- Compiled route cache for production dispatches (`composer run routes:cache`), disabled in development
 - Optional Redis and object storage (AWS S3, DO Spaces, etc.) configuration, including an upload helper
 - Quality gates: PHPStan level 5, PHPCS (PSR-12) and a combined `composer check`
 

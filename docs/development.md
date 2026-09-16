@@ -49,6 +49,7 @@ Then `composer run migrate` to create the example `customer` table.
 | `APP_BASE_URL` | API base URL; JWT issuer/audience and Twig base URLs. |
 | `APP_KEY` | Application secret (reserved; JWT uses `JWT_SECRET`). |
 | `DISPLAY_ERROR_DETAILS` | Adds exception class/file to error payloads and enables Twig auto-reload. Never enable in production. |
+| `ROUTE_CACHE` | Compiled route cache kill switch. Empty follows `DISPLAY_ERROR_DETAILS` (on in production); set `false` to rebuild routes every request. |
 | `SLIM_BASH_PATH` | URL base path when served from a sub-directory (leave empty otherwise). |
 | `JWT_SECRET` | HMAC-SHA256 signing key, minimum 32 bytes. Required for protected routes. |
 | `JWT_IDENTIFIER` | `jti` claim; defaults to the application value when empty. |
@@ -83,6 +84,7 @@ refreshed when `.env` changes.
 | `composer run seed` | Run Phinx seeders. |
 | `composer run token -- id=1 type=admin` | Generate a development JWT. |
 | `composer run generate-openapi-docs` | Regenerate `public/openapi.yaml` and `.json` from the `#[OA\...]` attributes. |
+| `composer run routes:cache` | Compile the FastRoute dispatcher cache (`.cache/routes.cache.php`) for a deployment. |
 | `composer run analyse` | PHPStan level 5 over `src` and `bin` (zero findings). |
 | `composer run phpcs` / `composer run phpcbf` | Check / fix PSR-12 code style. |
 | `composer run check` | `composer validate` + PHPStan + PHPCS. |

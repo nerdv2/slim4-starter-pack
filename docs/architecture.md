@@ -36,7 +36,9 @@ src/
 │   ├── Logging.php      Container logger (storage/log/error.log)
 │   ├── Middlewares.php  Routing, BasePath, body parser, error, request id, Twig
 │   ├── NotFound.php     Catch-all 404 route
-│   ├── Routes.php       Route definitions
+│   ├── RouteCache.php   Compiled FastRoute dispatcher cache setup
+│   ├── Routes.php       Route manifest (loads src/App/routes/)
+│   ├── routes/          Per-domain route files (core, health, customer, background_jobs)
 │   ├── Sentry.php       Optional Sentry initialization from SENTRY_DSN
 │   └── Services.php     Container registration for models and services
 ├── Constants/           HttpStatus, DateFormat, OpenApiTags
@@ -118,8 +120,9 @@ the **last added runs first**, which is why protected routes add `AuthorizationM
 
 ### Routes
 
-`src/App/Routes.php` holds flat, named route registrations. Protected routes declare their
-middleware inline:
+`src/App/Routes.php` is a manifest that loads one file per domain from `src/App/routes/`
+(`core`, `health`, `customer`, `background_jobs`); each file returns a closure that registers its
+routes. Registrations are flat and named, and protected routes declare their middleware inline:
 
 ```php
 $app->post('/customer/add', 'App\Controller\Customer:add')
@@ -127,6 +130,11 @@ $app->post('/customer/add', 'App\Controller\Customer:add')
     ->add(new AuthorizationMiddleware(['admin']))
     ->add(new AuthenticationMiddleware());
 ```
+
+Route definitions must not depend on the request environment: the optional compiled dispatcher
+cache is built from the route table without a request, so a conditional route would shift
+identifiers and serve the wrong handler. Environment-specific behaviour belongs in middleware (for
+example the CORS headers), not in the route list.
 
 ### Controllers
 
@@ -297,6 +305,9 @@ in `src/App/Services.php`; `composer run dev` runs the webserver and the worker 
 - Twig compiles templates into `storage/cache/twig`; `auto_reload` follows
   `DISPLAY_ERROR_DETAILS`, so production serves the compiled cache. Clear the directory after
   template changes when running with `DISPLAY_ERROR_DETAILS=false`.
+- The FastRoute dispatcher cache lives in `.cache/routes.cache.php`, enabled unless
+  `DISPLAY_ERROR_DETAILS` is on (or forced by `ROUTE_CACHE`). Compile it after route changes with
+  `composer run routes:cache`; route definitions must stay independent of the request environment.
 
 ## Observability
 
