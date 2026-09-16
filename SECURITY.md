@@ -11,7 +11,7 @@ Please **do not open a public issue** for security problems. Use one of these pr
 
 - Preferred: [GitHub private vulnerability reporting](https://github.com/nerdv2/slim4-starter-pack/security/advisories/new)
   (Security → Report a vulnerability).
-- Alternatively, email **gema_wardian@hotmail.com** with a description, reproduction steps and the
+- Alternatively, email **work@gemawardian.com** with a description, reproduction steps and the
   affected version or commit.
 
 You can expect an acknowledgement within a few days. Once a fix is ready it is released on `main`
