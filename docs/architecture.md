@@ -1,6 +1,6 @@
 # Architecture
 
-How the Slim 4 Starter Pack is structured and how a request flows through it.
+How the application is structured and how a request flows through it.
 
 ## Technology Stack
 
@@ -38,19 +38,19 @@ src/
 │   ├── NotFound.php     Catch-all 404 route
 │   ├── RouteCache.php   Compiled FastRoute dispatcher cache setup
 │   ├── Routes.php       Route manifest (loads src/App/routes/)
-│   ├── routes/          Per-domain route files (core, health, customer, background_jobs)
+│   ├── routes/          Per-domain route files (core, health, auth, customer, jobs)
 │   ├── Sentry.php       Optional Sentry initialization from SENTRY_DSN
 │   └── Services.php     Container registration for models and services
-├── Constants/           HttpStatus, DateFormat, OpenApiTags
-├── Controller/          HTTP handlers (BaseController, Hello, Customer, Health, OpenApi)
+├── Constants/           HttpStatus, DateFormat, OpenApiTags, UserType, CustomerStatus
+├── Controller/          HTTP handlers (BaseController, Hello, Auth, Customer, CustomerTransfer, Job, Health, OpenApi)
 ├── DTO/                 Request payloads (fromRequest/validate/isValid)
 ├── Exceptions/          Typed application exceptions
-├── Helper/              Stateless utilities (JsonResponse, Pagination, JwtHelper, ...)
+├── Helper/              Stateless utilities (JsonResponse, Pagination, JwtHelper, RefreshCookie, Storage, ...)
 ├── Interfaces/          ModelInterface
-├── Jobs/                Background job handlers (ExampleJob)
+├── Jobs/                Background job handlers (CustomerExportJob, CustomerImportJob)
 ├── Middleware/          AuthenticationMiddleware, AuthorizationMiddleware
-├── Model/               Data access (BaseModel, CustomerModel, HelloModel)
-├── Service/             Business rules (CustomerService)
+├── Model/               Data access (BaseModel, UserModel, RefreshTokenModel, CustomerModel, HelloModel)
+├── Service/             Business rules (AuthService, CustomerService, CustomerTransferService)
 └── View/                Twig templates (Swagger UI)
 bin/background-worker    Queue worker
 bin/dev-server           Webserver + worker development runner
@@ -121,13 +121,13 @@ the **last added runs first**, which is why protected routes add `AuthorizationM
 ### Routes
 
 `src/App/Routes.php` is a manifest that loads one file per domain from `src/App/routes/`
-(`core`, `health`, `customer`, `background_jobs`); each file returns a closure that registers its
+(`core`, `health`, `auth`, `customer`, `jobs`); each file returns a closure that registers its
 routes. Registrations are flat and named, and protected routes declare their middleware inline:
 
 ```php
-$app->post('/customer/add', 'App\Controller\Customer:add')
-    ->setName('api.customer.add')
-    ->add(new AuthorizationMiddleware(['admin']))
+$app->post('/customer', 'App\Controller\Customer:create')
+    ->setName('api.customer.create')
+    ->add(new AuthorizationMiddleware([UserType::ADMIN]))
     ->add(new AuthenticationMiddleware());
 ```
 

@@ -21,6 +21,25 @@ Queue services are registered in `src/App/Services.php`:
 | `jobRegistry` | `JobRegistry` | Maps job types to handler classes. |
 | `jobDispatcher` | `JobDispatcher` | Dispatch, schedule and inspect jobs. |
 
+## Real Jobs
+
+| Type | Handler | Dispatched by | Payload | Result |
+|------|---------|---------------|---------|--------|
+| `customer.export` | `CustomerExportJob` | `POST /customer/export` | `keywords`, `status`, `requested_by` | `file_name`, `row_count`, `generated_at` |
+| `customer.import` | `CustomerImportJob` | `POST /customer/import` | `file`, `requested_by` | `total`, `imported`, `skipped`, `failed`, `errors[]` |
+
+- Exports stream the filtered customers into `storage/exports/customer-export-{jobId}.csv` (UTF-8
+  BOM, deterministic name) and report progress every 200 rows. `GET
+  /customer/export/{id}/download` streams the file once the job is completed.
+- Imports read the uploaded CSV from `storage/imports/`, validate every row, insert in transactional
+  chunks of 100 and report per-row errors (capped at 100). Existing customers are skipped by name or
+  email, which also makes a retried job safe. The uploaded file is deleted afterwards.
+- Both jobs only ever live under `storage/`, never `public/`, and are reachable through the
+  authenticated download endpoint.
+
+Job state is observable through `GET /jobs/{id}` (any authenticated user): status, progress,
+progress message, result and error message. The job payload stays private.
+
 ## Configuration
 
 | Variable | Default | Purpose |
@@ -43,9 +62,9 @@ Queue services are registered in `src/App/Services.php`:
 From a controller or service with the dispatcher injected:
 
 ```php
-$jobId = $this->jobDispatcher->dispatch('example.hello', ['message' => 'Hi']);
-$jobId = $this->jobDispatcher->dispatchAfter(300, 'example.hello', ['message' => 'Later']);
-$result = $this->jobDispatcher->dispatchIdempotent('example.hello', $payload, 'request-id-123');
+$jobId = $this->jobDispatcher->dispatch('customer.export', ['status' => 'active']);
+$jobId = $this->jobDispatcher->dispatchAfter(300, 'customer.export', ['status' => 'active']);
+$result = $this->jobDispatcher->dispatchIdempotent('customer.export', $payload, 'request-id-123');
 ```
 
 - `dispatch()` returns the job id.
@@ -55,13 +74,6 @@ $result = $this->jobDispatcher->dispatchIdempotent('example.hello', $payload, 'r
 - `getStatus($jobId)` returns a `JobData` value object (`status`, `progress`, `result`, `attempts`,
   `errorMessage`, ...).
 
-The example module exposes the flow through admin endpoints (JWT + admin required):
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| `POST` | `/admin/background-jobs/example` | Dispatch the example job (optional `message` field). |
-| `GET` | `/admin/background-jobs/{id}` | Job status, progress and result. |
-
 ## Writing a Job
 
 1. Create a handler in `src/Jobs/` implementing `Oeltima\SimpleQueue\Contract\JobHandlerInterface`:
@@ -69,6 +81,8 @@ The example module exposes the flow through admin endpoints (JWT + admin require
    ```php
    final class MyJob implements JobHandlerInterface
    {
+       public function __construct(private readonly MyModel $model) {}
+
        public function handle(int $jobId, array $payload, ?callable $progressCallback = null): mixed
        {
            if ($progressCallback !== null) {
@@ -80,17 +94,24 @@ The example module exposes the flow through admin endpoints (JWT + admin require
    }
    ```
 
-2. Register the type in `src/App/Services.php` (`jobRegistry`):
+2. Register the handler class and its type in `src/App/Services.php`:
 
    ```php
-   $registry->register('my.job', \App\Jobs\MyJob::class);
+   $container[MyJob::class] = static function (Container $container): MyJob {
+       /** @var MyModel $model */
+       $model = $container['myModel'];
+
+       return new MyJob($model);
+   };
+
+   $registry->register('my.job', MyJob::class);
    ```
 
-3. Dispatch it with `jobDispatcher` and monitor it through the status endpoint.
+3. Dispatch it with `jobDispatcher` and monitor it through `GET /jobs/{id}`.
 
-Job handlers may resolve dependencies from the container (the registry receives the PSR-11
-container). Throw an exception to fail the job; SimpleQueue retries it with backoff up to
-`max_attempts` and records the error.
+Job handlers resolve dependencies from the container (the registry receives the PSR-11 container).
+Throw an exception to fail the job; SimpleQueue retries it with backoff up to `max_attempts` and
+records the error. Keep handlers idempotent where retries are possible.
 
 ## Running the Worker
 
@@ -119,12 +140,14 @@ php bin/dev-server --port=8081      # custom port
 
 ## Tests
 
-Queue behaviour is covered on SQLite in `tests/Integration/Queue/` (dispatch → process →
-completed, idempotent dispatch) and through the admin endpoints in
-`tests/Integration/Controller/BackgroundJobTest.php`. No Redis or external worker is required.
+Queue behaviour is covered on SQLite in `tests/Integration/Queue/CustomerJobTest.php` (export file
+contents, import validation and cleanup, idempotent dispatch) and through the HTTP contract in
+`tests/Integration/Controller/CustomerTransferTest.php` and
+`tests/Integration/Controller/JobTest.php`. Worker execution is driven directly with
+`Worker::processOne()`, so no external worker or Redis is required.
 
 ## Related Docs
 
+- [Authentication](authentication.md)
 - [Architecture](architecture.md)
 - [Development](development.md)
-- [Database](database.md)

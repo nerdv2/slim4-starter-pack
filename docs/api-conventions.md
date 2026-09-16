@@ -130,31 +130,33 @@ Example response:
 
 ## Authentication
 
-Protected endpoints use a JWT in the `Authorization` header. Both forms are accepted:
+Protected endpoints use a short-lived JWT in the `Authorization` header. Both forms are accepted:
 
 ```http
 Authorization: <token>
 Authorization: Bearer <token>
 ```
 
-Tokens are HMAC-SHA256 JWTs built by `App\Helper\JwtHelper`:
+Access tokens are HMAC-SHA256 JWTs built by `App\Helper\JwtHelper`; user claims are mapped to
+`id`, `email`, `name` and `type` (`admin`/`staff`). A token without `id` is rejected.
 
 | Setting | Environment variable | Default |
 |---------|----------------------|---------|
 | Signing key | `JWT_SECRET` | none (required, minimum 32 bytes) |
 | Issuer / audience | `APP_BASE_URL` | none (required) |
 | JWT ID (`jti`) | `JWT_IDENTIFIER` | `4f1g23a12aa` |
-| Lifetime | `JWT_TTL` | `+7 day` |
+| Access token lifetime | `JWT_ACCESS_TTL` | `+15 minute` |
 
-Standard claims are `iss`, `aud`, `jti`, `iat`, `nbf` and `exp`; user claims are mapped to
-`id`, `email`, `name`, `type` and `logged_in`. A token without `id` is rejected.
+Sessions are restored through `POST /auth/refresh`, which reads the opaque HttpOnly refresh cookie
+and rotates it on every use. See [Authentication](authentication.md) for the full flow, cookie
+attributes and reuse detection.
 
 Protect a route by adding middleware (the last added runs first):
 
 ```php
-$app->post('/customer/add', 'App\Controller\Customer:add')
-    ->setName('api.customer.add')
-    ->add(new AuthorizationMiddleware(['admin']))
+$app->post('/customer', 'App\Controller\Customer:create')
+    ->setName('api.customer.create')
+    ->add(new AuthorizationMiddleware([UserType::ADMIN]))
     ->add(new AuthenticationMiddleware());
 ```
 
@@ -164,7 +166,6 @@ Failures use the standard envelope with a real HTTP status:
 |------|--------|---------|
 | Missing/invalid/expired token | `401` | `Authorization token is missing or invalid.` |
 | Valid token, disallowed type | `403` | `Access denied.` |
-| Authorization middleware without authentication | `401` | `Authentication required.` |
 
 Generate a development token without a user table:
 
@@ -228,9 +229,17 @@ handles the request body-less preflight before routing.
 
 ## File Uploads
 
-`App\Helper\UploadHelper` supports local filesystem and S3-compatible object storage
-(`DEFAULT_UPLOAD_TARGET`, `S3_*` variables). It is shipped as a starting point and is not wired to
-any endpoint yet; validate extensions and sizes before trusting client filenames when you use it.
+Uploads are handled by `App\Helper\UploadHelper` (local filesystem or S3-compatible storage via
+`DEFAULT_UPLOAD_TARGET`, `S3_*`). The customer module wires it to two endpoints:
+
+| Endpoint | Field | Rules |
+|----------|-------|-------|
+| `POST /customer/{id}/avatar` | `avatar` | JPEG/PNG/WebP up to `UPLOAD_AVATAR_MAX_BYTES` (default 2 MB). Replacing or deleting a customer removes the old file. |
+| `POST /customer/import` | `file` | `.csv` up to `UPLOAD_IMPORT_MAX_BYTES` (default 5 MB). Stored under `storage/imports/`, processed by the queue and deleted afterwards. |
+
+Both validate extension, MIME type and size before trusting client filenames. Avatar URLs are
+absolute (`APP_BASE_URL` + `uploads/avatars/...`); export and import files stay under `storage/`
+and are only reachable through authenticated endpoints.
 
 ## Related Docs
 

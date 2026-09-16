@@ -40,7 +40,7 @@ docker volume create slim4-storage
 docker run --detach --name slim4-api --publish 8080:80 \
   --mount source=slim4-storage,target=/var/www/html/storage \
   --env APP_ENVIRONMENT=production \
-  --env APP_NAME="Slim 4 Starter Pack" \
+  --env APP_NAME="Customer DB" \
   --env APP_BASE_URL="https://api.example.com" \
   --env DEFAULT_TIMEZONE="Asia/Jakarta" \
   --env APP_KEY="change-me" \

@@ -1,10 +1,11 @@
 # AGENTS.md — Contributor & Agent Guidelines
 
-Rules for working on the **Slim 4 Starter Pack** (`nerdv2/slim4-starter-pack`).
+Rules for working on **Customer DB** (the `nerdv2/slim4-starter-pack` repository, a Slim 4 JSON API
+with a Vue 3 frontend in `nerdv2/vue3-starter-pack`).
 
-> **Status:** the codebase follows these conventions (phases P0–P6: configuration, data layer,
-> HTTP contract, authentication, example module, quality gates and documentation). Follow them for
-> new and touched code.
+> **Status:** the codebase follows these conventions (phases P0–P7: configuration, data layer,
+> HTTP contract, authentication, customer module, quality gates, documentation and the product
+> build-out). Follow them for new and touched code.
 
 ---
 
@@ -35,7 +36,7 @@ php -l path/to/file.php               # syntax check
 | Document | Covers |
 |----------|--------|
 | [README.md](README.md) | Public overview, setup, deployment notes. |
-| [docs/](docs/README.md) | Developer guides: architecture, API conventions, database, development, background jobs, deployment. Internal planning notes also live in `docs/` but are git-ignored. |
+| [docs/](docs/README.md) | Developer guides: architecture, authentication, API conventions, database, development, background jobs, deployment. Internal planning notes also live in `docs/` but are git-ignored. |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution workflow, quality gates and commit conventions. |
 | [SECURITY.md](SECURITY.md) | Vulnerability reporting and deployment hardening. |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community expectations and enforcement. |
@@ -132,6 +133,15 @@ public function list(Request $request, Response $response): Response
   resolve them from the container (for example `$container->get('customerService')`).
 - Services throw typed exceptions (`ValidationException`, `NotFoundException`); controllers catch
   `AppException` and return the envelope through `BaseController::errorResponse()`.
+
+### Authentication
+
+- Access tokens are short-lived JWTs (`JwtHelper::buildToken`, `JWT_ACCESS_TTL`); refresh tokens are
+  opaque, rotated inside session families and stored as SHA-256 hashes (`RefreshTokenModel`).
+- Session logic lives in `AuthService`; the refresh cookie is built and read by `RefreshCookie` and
+  only ever travels in `Set-Cookie` headers — never in a JSON body.
+- Changing a password revokes every other session family; logout revokes the presented family.
+- New protected routes follow the middleware order in the Routes section below.
 
 ### Jobs
 
@@ -249,8 +259,9 @@ docs(agents): add contributor and agent guidelines
 | P2 | SimpleQuery + `BaseModel` + `Pagination` | done |
 | P3 | Response envelope, error handling, CORS | done |
 | P4 | `JwtHelper`, auth middleware, `BaseController` | done |
-| P5 | Example module + OpenAPI (swagger-php 6) | done |
+| P5 | Example module + OpenAPI (swagger-php 6) | superseded by P7 |
 | P6 | PHPStan/PHPCS, developer docs | done |
+| P7 | Product build-out: user accounts + refresh sessions, customer module with avatars, queued CSV export/import, Vue 3 SPA | done |
 
 ## 8. Before You Finish
 

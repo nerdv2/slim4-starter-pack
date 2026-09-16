@@ -1,20 +1,14 @@
-# slim4-starter-pack
+# Customer DB — Slim 4 API
 
 [![CI](https://github.com/nerdv2/slim4-starter-pack/actions/workflows/ci.yml/badge.svg)](https://github.com/nerdv2/slim4-starter-pack/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![PHP 8.3+](https://img.shields.io/badge/php-8.3%2B-777bb4.svg)](composer.json)
 
-A production-ready [Slim 4](https://www.slimframework.com/) starter for building JSON REST APIs:
-a no-ORM query builder, JWT authentication, a background job queue, optional Redis caching and
-Twig templating — with the architecture rules, quality gates and deployment guides included.
-
-## Background
-
-This project started when I needed a replacement for CodeIgniter 3 for a more modern development
-environment while retaining the familiar Model-View-Controller (MVC) structure, with a lightweight
-enough framework to develop for. The conventions and structure follow what has been proven in
-production projects built from this starter (see [AGENTS.md](AGENTS.md) and the
-[documentation](docs/README.md)).
+A production-ready customer database API built on a hardened
+[Slim 4](https://www.slimframework.com/) foundation: a no-ORM query builder, access + refresh token
+authentication, a durable background queue with CSV export/import, avatar uploads, optional Redis
+caching and generated OpenAPI documentation. The matching Vue 3 + Vite frontend lives in the
+sibling [vue3-starter-pack](https://github.com/nerdv2/vue3-starter-pack) repository.
 
 ## Features
 
@@ -23,26 +17,38 @@ production projects built from this starter (see [AGENTS.md](AGENTS.md) and the
 - Slim 4 scaffolding with PSR-7, PSR-11 and PSR-15 implementations
 - Standard JSON response envelope (`status`/`message`/`data`), pagination metadata and
   `application/problem+json` error output with Monolog logging
-- `X-Request-ID` request tracing and env-driven CORS
+- `X-Request-ID` request tracing, env-driven CORS and cookie-aware credentials for the SPA
 - OpenAPI 3 specification generated from `#[OA\...]` attributes (swagger-php 6) with a bundled
   Swagger UI
+
+**Authentication**
+
+- Access + refresh token sessions: short-lived JWT access tokens, opaque HttpOnly refresh cookies
+- Refresh rotation inside session families with reuse detection (a replayed token revokes the
+  family)
+- `admin` / `staff` roles enforced by PSR-15 middleware, bcrypt passwords, change-password with
+  selective session revocation
+
+**Customer management**
+
+- Full CRUD with soft deletes, keyword search, status filter and pagination
+- Avatar uploads (JPEG/PNG/WebP) with automatic cleanup of replaced files
+- Dashboard statistics cached in Redis when configured
 
 **Data layer**
 
 - [oeltimacreation/php-simplequery](https://github.com/oeltimacreation/php-simplequery) query
-  builder (MySQL, MariaDB and SQLite; no ORM) with a shared `BaseModel`, pagination, keyword search
-  and managed transactions
-- Phinx migrations and seeders, plus an optional read replica connection
-
-**Authentication**
-
-- JWT (lcobucci/jwt) with PSR-15 authentication and role-based authorization middleware
-- Development token command for local testing
+  builder (MySQL, MariaDB and SQLite; no ORM) with a shared `BaseModel`, pagination and managed
+  transactions
+- Phinx migrations and seeders (schema, bootstrap admin, demo customers), plus an optional read
+  replica connection
 
 **Background jobs**
 
 - [oeltimacreation/php-simplequeue](https://github.com/oeltimacreation/php-simplequeue) queue with a
-  worker binary, dispatch/status endpoints, retries, stuck-job recovery and graceful recycling
+  worker binary, progress reporting, retries, stuck-job recovery and graceful recycling
+- Queued **CSV export** (filters, progress, authenticated download) and **CSV import** (per-row
+  validation, chunked transactional inserts, per-row error report)
 
 **Performance & operations**
 
@@ -79,8 +85,9 @@ Then pick one of the two setup paths.
 **SQLite — zero configuration.** Shell environment variables override `.env`:
 
 ```bash
-DB_DRIVER=sqlite DB_NAME=storage/test_database.sqlite composer run migrate
-DB_DRIVER=sqlite DB_NAME=storage/test_database.sqlite JWT_SECRET="$(openssl rand -hex 32)" composer run serve
+DB_DRIVER=sqlite DB_NAME=storage/dev_database.sqlite JWT_SECRET="$(openssl rand -hex 32)" composer run migrate
+DB_DRIVER=sqlite DB_NAME=storage/dev_database.sqlite JWT_SECRET="$(openssl rand -hex 32)" composer run seed
+DB_DRIVER=sqlite DB_NAME=storage/dev_database.sqlite JWT_SECRET="$(openssl rand -hex 32)" composer run dev
 ```
 
 **MySQL / MariaDB.** Edit `.env` with the database credentials and a `JWT_SECRET`
@@ -88,12 +95,21 @@ DB_DRIVER=sqlite DB_NAME=storage/test_database.sqlite JWT_SECRET="$(openssl rand
 
 ```bash
 composer run migrate
-composer run serve
+composer run seed
+composer run dev
 ```
 
-The server listens on http://127.0.0.1:8080; `composer run dev` starts the webserver together with
-the background worker. Make sure `storage/` is writable: the application writes the parsed env
-cache, compiled Twig templates, the route cache and logs there.
+`composer run dev` starts the webserver together with the background worker; `composer run serve`
+starts the webserver alone. The server listens on http://127.0.0.1:8080. Make sure `storage/` is
+writable: the application writes the parsed env cache, compiled Twig templates, the route cache,
+exports/imports and logs there.
+
+The seeder creates the bootstrap administrator and demo customers. Change the password before
+deploying anywhere:
+
+| Email | Password |
+|-------|----------|
+| `admin@example.com` | `Admin123!` |
 
 Smoke checks:
 
@@ -104,37 +120,87 @@ curl -s localhost:8080/health/ready | jq     # database readiness
 
 Swagger UI is available at http://127.0.0.1:8080/swaggerui.
 
-## Authentication
+## API overview
 
-Protected endpoints expect a JWT in the `Authorization` header (raw token or `Bearer <token>`).
-The bundled command signs a development token with `JWT_SECRET`:
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| `POST` | `/auth/register` | — | Create a `staff` account and start a session. |
+| `POST` | `/auth/login` | — | Email + password → access token + refresh cookie. |
+| `POST` | `/auth/refresh` | cookie | Rotate the refresh cookie, issue a new access token. |
+| `POST` | `/auth/logout` | cookie | Revoke the session family. |
+| `GET` | `/auth/me` | token | Current account. |
+| `PUT` | `/auth/profile` | token | Update the display name. |
+| `POST` | `/auth/change-password` | token | Change the password and revoke other sessions. |
+| `GET` | `/customer` | token | Paginated list (`page`, `limit`, `keywords`, `status`). |
+| `GET` | `/customer/stats` | token | Dashboard counts per status. |
+| `GET` | `/customer/{id}` | token | Customer detail. |
+| `POST` | `/customer` | admin | Create a customer. |
+| `PUT` | `/customer/{id}` | admin | Update a customer. |
+| `DELETE` | `/customer/{id}` | admin | Soft-delete a customer. |
+| `POST` | `/customer/{id}/avatar` | admin | Upload/replace the avatar (multipart `avatar`). |
+| `DELETE` | `/customer/{id}/avatar` | admin | Remove the avatar. |
+| `POST` | `/customer/export` | token | Queue a CSV export (`keywords`, `status`). |
+| `GET` | `/customer/export/{id}/download` | token | Download a completed export. |
+| `POST` | `/customer/import` | admin | Queue a CSV import (multipart `file`). |
+| `GET` | `/jobs/{id}` | token | Background job status, progress and result. |
+
+Authentication details, cookie attributes and reuse detection: [docs/authentication.md](docs/authentication.md).
+
+### Sessions with curl
 
 ```bash
-TOKEN=$(composer run token -- id=1 type=admin)
-
-# Public list endpoint
-curl -s 'http://localhost:8080/customer?page=1&limit=10' | jq
-
-# Admin-only write endpoint
-curl -s -X POST http://localhost:8080/customer/add \
-  -H "Authorization: Bearer $TOKEN" \
+# Login and keep the refresh cookie in a jar
+curl -s -c cookies.txt -X POST http://localhost:8080/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"name":"Acme"}' | jq
+  -d '{"email":"admin@example.com","password":"Admin123!"}' | jq
+
+TOKEN=$(curl -s -c cookies.txt -X POST http://localhost:8080/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@example.com","password":"Admin123!"}' | jq -r '.data.access_token')
+
+# Authenticated request
+curl -s -H "Authorization: Bearer $TOKEN" 'http://localhost:8080/customer?limit=5' | jq
+
+# Rotate the session (uses the stored cookie)
+curl -s -b cookies.txt -c cookies.txt -X POST http://localhost:8080/auth/refresh | jq
 ```
 
-See [API Conventions](docs/api-conventions.md) for token claims, roles and error responses.
+For local API testing without a user table, `composer run token -- id=1 type=admin` signs a
+long-lived development JWT.
+
+### CSV export and import
+
+Exports and imports run through the queue, so start the worker (`composer run dev` or
+`composer run worker`). The import CSV must have a `name` column; `email`, `phone`, `company`,
+`status`, `address` and `notes` are optional. Rows with an existing name/email are skipped, invalid
+rows are reported individually.
+
+```bash
+# Queue an export of active customers
+curl -s -X POST http://localhost:8080/customer/export \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"status":"active"}' | jq
+
+# Poll the job, then download
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/jobs/1 | jq
+curl -s -H "Authorization: Bearer $TOKEN" -OJ http://localhost:8080/customer/export/1/download
+
+# Import
+curl -s -X POST http://localhost:8080/customer/import \
+  -H "Authorization: Bearer $TOKEN" -F 'file=@customers.csv' | jq
+```
 
 ## Project structure
 
 ```text
 src/App/             bootstrap, container, routes and middleware wiring
-src/Controller/      HTTP handlers
-src/Service/         business rules
+src/Controller/      HTTP handlers (Auth, Customer, CustomerTransfer, Job, Health, ...)
+src/Service/         business rules (AuthService, CustomerService, CustomerTransferService)
 src/Model/           SimpleQuery data access
 src/DTO/Request/     validated request payloads
 src/Middleware/      authentication, authorization, health token, request id
-src/Jobs/            background job handlers
-src/Helper/          JsonResponse, Pagination, JwtHelper, UploadHelper, ...
+src/Jobs/            background job handlers (CSV export/import)
+src/Helper/          JsonResponse, Pagination, JwtHelper, RefreshCookie, UploadHelper, Storage, ...
 db/migrations/       Phinx migrations and seeders
 public/              front controller, Swagger UI and generated OpenAPI files
 tests/               PHPUnit unit and integration suites (SQLite)
@@ -150,7 +216,7 @@ docs/                developer guides
 | `composer run worker` | Background worker for the default queue. |
 | `composer run migrate` | Apply Phinx migrations. |
 | `composer run migrate:rollback` | Roll back the last migration. |
-| `composer run seed` | Run Phinx seeders. |
+| `composer run seed` | Seed the admin account and demo customers. |
 | `composer run token -- id=1 type=admin` | Generate a development JWT. |
 | `composer run generate-openapi-docs` | Regenerate `public/openapi.yaml` and `.json`. |
 | `composer run routes:cache` | Compile the production route cache. |
@@ -163,15 +229,14 @@ docs/                developer guides
 | Document | Description |
 |----------|-------------|
 | [Architecture](docs/architecture.md) | Stack, bootstrap sequence, request lifecycle and layering. |
+| [Authentication](docs/authentication.md) | Access/refresh tokens, rotation, cookies and roles. |
 | [API Conventions](docs/api-conventions.md) | Response envelope, authentication, pagination, errors and CORS. |
 | [Database](docs/database.md) | Connections, `BaseModel`, query patterns and migrations. |
 | [Development](docs/development.md) | Local setup, environment variables, commands and adding an endpoint. |
-| [Background Jobs](docs/background-jobs.md) | Queue architecture, job handlers, worker and dev runner. |
+| [Background Jobs](docs/background-jobs.md) | Queue architecture, the CSV jobs, the worker and the dev runner. |
 | [Caching](docs/caching.md) | Redis design, key format, invalidation map and operations. |
 | [Deployment](docs/deployment.md) | Container image, migrations, worker containers, Compose and CI. |
 | [AGENTS.md](AGENTS.md) | Architecture rules, layering and contributor conventions. |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution workflow, quality gates and commit conventions. |
-| [SECURITY.md](SECURITY.md) | Vulnerability reporting and deployment hardening. |
 | [public/openapi.yaml](public/openapi.yaml) | Generated API reference. |
 
 ## Server deployment
@@ -203,11 +268,12 @@ server {
 }
 ```
 
-CORS is env-driven (`CORS_ENABLED`) and defaults to on for `development`/`testing`. In production,
-either allow exact origins with `CORS_ALLOWED_ORIGINS`, or disable it and let the webserver or
-reverse proxy manage CORS and preflight requests — do not do both at once, as duplicate
-`Access-Control-Allow-*` headers confuse browsers. Keep `DISPLAY_ERROR_DETAILS=false` and always set
-`JWT_SECRET` and `HEALTHCHECK_TOKEN` in deployed environments.
+CORS is env-driven (`CORS_ENABLED`) and defaults to on for `development`/`testing`. The Vue dev
+server expects `CORS_ALLOWED_ORIGINS="http://localhost:5173"` and `CORS_ALLOW_CREDENTIALS=true`
+(credentials are required for the refresh cookie). In production, either allow the exact frontend
+origin and keep credentials enabled, or serve the SPA from the same origin and disable CORS. Keep
+`DISPLAY_ERROR_DETAILS=false` and always set `JWT_SECRET` and `HEALTHCHECK_TOKEN` in deployed
+environments.
 
 ## Contributing
 

@@ -23,7 +23,7 @@ The server listens on `http://127.0.0.1:8080`. Make sure `storage/` is writable:
 writes the parsed env cache (`storage/cache/env.cache.json`), compiled Twig templates
 (`storage/cache/twig/`) and the error log (`storage/log/error.log`) there.
 
-Minimum `.env` for the example module:
+Minimum `.env` for the application:
 
 ```dotenv
 APP_BASE_URL="http://localhost:8080"
@@ -33,10 +33,11 @@ DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_USER=root
 DB_PASS=secret
-DB_NAME=slim4_starter
+DB_NAME=customer_db
 ```
 
-Then `composer run migrate` to create the example `customer` table.
+Then `composer run migrate` to create the schema and `composer run seed` to create the bootstrap
+admin account (`admin@example.com` / `Admin123!` — change it before deploying) and demo customers.
 
 ## Environment Variables
 
@@ -53,11 +54,18 @@ Then `composer run migrate` to create the example `customer` table.
 | `SLIM_BASH_PATH` | URL base path when served from a sub-directory (leave empty otherwise). |
 | `JWT_SECRET` | HMAC-SHA256 signing key, minimum 32 bytes. Required for protected routes. |
 | `JWT_IDENTIFIER` | `jti` claim; defaults to the application value when empty. |
-| `JWT_TTL` | Token lifetime, `strtotime` compatible (default `+7 day`). |
+| `JWT_ACCESS_TTL` | Access token lifetime, `strtotime` compatible (default `+15 minute`). |
+| `JWT_TTL` | Lifetime of development tokens from `bin/generate-token` (default `+7 day`). |
+| `REFRESH_TOKEN_TTL_DAYS` | Refresh token and cookie lifetime in days (default 30). |
+| `AUTH_COOKIE_SAMESITE` | Refresh cookie policy: `Lax` (default), `Strict` or `None`. |
+| `AUTH_COOKIE_SECURE` | Force the `Secure` cookie flag; empty derives it from `APP_ENVIRONMENT`. |
 | `DB_DRIVER` | `mysql`, `mariadb` or `sqlite`. |
-| `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME` | Primary connection (SQLite uses `DB_NAME` as the file path). |
+| `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME` | Primary connection (SQLite uses `DB_NAME` as the file path, relative to the project root). |
 | `DB_*_READ` | Optional read replica; each value falls back to its primary counterpart. |
 | `DEFAULT_UPLOAD_TARGET` | `filesystem` (default) or `s3`. |
+| `UPLOAD_AVATAR_MAX_BYTES`, `UPLOAD_AVATAR_EXTENSIONS` | Customer avatar size cap (default 2 MB) and extension allowlist. |
+| `UPLOAD_IMPORT_MAX_BYTES` | Customer CSV import size cap (default 5 MB). |
+| `STORAGE_PATH` | Optional override for the writable storage root (exports, imports, logs, cache). |
 | `SENTRY_DSN` | Optional Sentry DSN; empty disables error reporting. |
 | `HEALTHCHECK_TOKEN` | Token for `GET /health/detailed`; development and testing bypass it when empty. |
 | `CORS_ENABLED` | Enables CORS; defaults to on for development/testing or `localhost`. |
@@ -275,7 +283,8 @@ Before finishing, run the checklist in `AGENTS.md`: syntax check, `composer chec
 The test suite runs on PHPUnit with SQLite; no database server is required. `tests/bootstrap.php`
 forces `DB_DRIVER=sqlite` and a throwaway `storage/test_database.sqlite`, `Tests\TestCase` applies
 the Phinx migrations once per run, cleans the tables before every test and exposes HTTP helpers
-(`createRequest`, `handle`, `json`, `authHeader`).
+(`createRequest`, `handle`, `json`, `authHeader`, `createUser`, `responseCookie`,
+`withRefreshCookie`).
 
 ```bash
 composer run test              # all suites

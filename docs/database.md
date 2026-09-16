@@ -14,11 +14,25 @@ The application talks to MySQL, MariaDB or SQLite through
 | `db_read` | `DB_DRIVER`, `DB_HOST_READ`, `DB_PORT_READ`, `DB_NAME_READ`, `DB_USER_READ`, `DB_PASS_READ` | Read-only endpoints; each value falls back to its primary counterpart. |
 
 - `DB_DRIVER` selects the dialect: `mysql` (default), `mariadb` or `sqlite`. MySQL and MariaDB use
-  PDO's `mysql` transport with `utf8mb4`; SQLite takes the database path as `DB_NAME`.
+  PDO's `mysql` transport with `utf8mb4`; SQLite takes the database path as `DB_NAME` (relative
+  paths resolve against the project root, so the built-in server’s `public/` working directory does
+  not matter).
 - MySQL-family connections use `PDO::ATTR_TIMEOUT = 5` and a `ConnectionOptions` label
   (`primary` / `read-replica`) for diagnostics.
 - `db_read` is always registered, so `$container->get('db_read')` is safe locally even without a
   replica.
+
+## Schema
+
+| Table | Purpose |
+|-------|---------|
+| `user` | Accounts (`name`, `email`, bcrypt `password_hash`, `type` = `admin`/`staff`, `last_login_at`) with soft deletes. |
+| `refresh_token` | Hashed, rotating refresh tokens (`user_id`, `family_id`, `token_hash`, `expires_at`, `revoked_at`, request metadata). |
+| `customer` | Customers (`name`, `email`, `phone`, `company`, `status`, `address`, `notes`, `avatar_path`, timestamps) with soft deletes. |
+| `background_job` | Durable queue state managed by SimpleQueue (see [Background Jobs](background-jobs.md)). |
+
+`refresh_token` and `customer` only ever expose hashed/relative values: the raw refresh token lives
+in the HttpOnly cookie and avatar files under `public/uploads/avatars/`.
 
 Controllers receive the connection through `BaseController::db()` / `dbRead()`:
 
@@ -146,8 +160,8 @@ composer run seed               # run seeders
 - Configuration: `phinx.php` reads process environment variables first, then `.env` next to the
   file, then defaults. Paths are absolute, so migrations run from any working directory.
 - Migrations live in `db/migrations/` and seeders in `db/seeds/`.
-- `phinx-testing.php` provides an SQLite configuration (`storage/test_database.sqlite`) for a test
-  suite; it is not wired to a composer script yet.
+- `phinx-testing.php` provides the SQLite configuration (`storage/test_database.sqlite`) used by
+  `Tests\TestCase`, which migrates once per test run.
 
 ## Related Docs
 
