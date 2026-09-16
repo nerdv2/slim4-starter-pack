@@ -1,11 +1,11 @@
 {
-    "name": "nerdv2/slim4-skeleton",
+    "name": "nerdv2/slim4-starter-pack",
     "description": "Slim 4 starter project with REST API scaffolding, query builder, JWT authentication, background jobs and Twig templating.",
     "keywords": [
         "slim",
         "slim4",
-        "skeleton",
         "starter",
+        "starter-pack",
         "php",
         "rest-api",
         "jwt",

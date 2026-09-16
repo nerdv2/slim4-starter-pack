@@ -1,6 +1,6 @@
 # AGENTS.md — Contributor & Agent Guidelines
 
-Rules for working on the **Slim 4 Starter Pack** (`nerdv2/slim4-skeleton`).
+Rules for working on the **Slim 4 Starter Pack** (`nerdv2/slim4-starter-pack`).
 
 > **Status:** the codebase follows these conventions (phases P0–P6: configuration, data layer,
 > HTTP contract, authentication, example module, quality gates and documentation). Follow them for
