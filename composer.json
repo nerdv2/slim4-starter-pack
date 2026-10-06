@@ -32,7 +32,7 @@
         "lcobucci/clock": "^3.0",
         "lcobucci/jwt": "^5.0",
         "monolog/monolog": "^3.6",
-        "oeltimacreation/php-simplequery": "^0.7",
+        "oeltimacreation/php-simplequery": "^0.8",
         "oeltimacreation/php-simplequeue": "^1.10",
         "pimple/pimple": "^3.2",
         "predis/predis": "^3.6",
